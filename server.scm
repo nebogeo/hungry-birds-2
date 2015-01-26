@@ -94,7 +94,7 @@
              ((struct binding:file (id filename headers content))
               (let ((fn (bytes->string/utf-8 filename)))
                 (with-output-to-file
-                    (string-append "uploads/" fn) #:exists 'replace
+                    (string-append "textures/uploads/" fn) #:exists 'replace
                     (lambda ()
                       (write-bytes content)))
                 (insert-morph db fn 1 1 1 1))))

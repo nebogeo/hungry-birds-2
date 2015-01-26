@@ -6,14 +6,14 @@
    (vmul (crndvec) 15) ;; pos
    (vnormalise (crndvec)) ;; dir
    (rndf) ;; fuzz
-   (expr-to-number expr)
+   (load-texture (string-append "uploads/" expr))
    expr ;; texture
    (* 0.1 (- (rndf) 0.5))  ;; turn
    "idle" ;; state
    20 40)) ;; speed
 
 (define (demo-butterfly pos dir fuzz tex turn speed)
-  (list "demo" pos dir fuzz tex () turn "demo" speed 40))
+  (list "demo" pos dir fuzz (load-texture (string-append "uploads/" tex)) () turn "demo" speed 40))
 
 (define (example-butterfly expr)
   (list
@@ -21,7 +21,7 @@
    (vector 0 0 15)
    (vector 0 1 0)
    (rndf) ;; fuzz
-   (expr-to-number expr)
+   (load-texture (string-append "uploads/" expr))
    expr ;; texture
    (* 0.1 (- (rndf) 0.5))  ;; turn
    "idle" ;; state
@@ -34,7 +34,7 @@
      pos ;; pos
      (vnormalise (vsub (vector x y 0) pos))
      (rndf) ;; fuzz
-     (expr-to-number expr)
+     (load-texture (string-append "uploads/" expr))
      expr ;; texture
      (* 0.1 (- (rndf) 0.5))  ;; turn
      "idle" ;; state
@@ -87,7 +87,7 @@
              (if (eq? (butterfly-type s) "edible")
                  (butterfly-modify-texture
                   (butterfly-modify-expr s new-expr)
-                  (expr-to-number new-expr)) s)
+                  (load-texture (string-append "uploads/" new-expr))) s)
              "re-centre"))
           (if (< (rndf) 0.99)
               s
@@ -148,7 +148,7 @@
 
 (define (render-butterfly s)
   (with-state
-   (texture (list-ref test-tex (butterfly-texture s)))
+   (texture (butterfly-texture s))
    (translate (butterfly-pos s))
    (maim (vnormalise (butterfly-dir s)) (vector 0 0 1))
    (rotate (vector 0 90 90))

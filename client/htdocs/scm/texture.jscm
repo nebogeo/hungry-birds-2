@@ -1,3 +1,4 @@
+;; -*- mode: scheme; -*-
 ;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -24,21 +25,24 @@
    textures))
 
 (define (load-texture-impl! gl name)
-  (let ((texture (gl.createTexture)))
-    (set! texture.image (js "new Image();"))
-    (set! texture.image.onload
-          (lambda ()
-            (console.log "loaded")
-            (gl.bindTexture gl.TEXTURE_2D texture)
-            (gl.pixelStorei gl.UNPACK_FLIP_Y_WEBGL true)
-            (gl.texImage2D gl.TEXTURE_2D 0 gl.RGBA gl.RGBA gl.UNSIGNED_BYTE texture.image)
-            (gl.texParameteri gl.TEXTURE_2D gl.TEXTURE_MAG_FILTER gl.NEAREST)
-            (gl.texParameteri gl.TEXTURE_2D gl.TEXTURE_MIN_FILTER gl.NEAREST)
-            (gl.bindTexture gl.TEXTURE_2D null)
-            (set! textures (cons (list name texture) textures))))
-    (set! texture.image.src name)
-    (console.log (+ "loading " name))
-    name))
+  (msg (assoc name textures))
+  (if (assoc name textures)
+      name
+      (let ((texture (gl.createTexture)))
+        (set! texture.image (js "new Image();"))
+        (set! texture.image.onload
+              (lambda ()
+                ;; (console.log "loaded")
+                (gl.bindTexture gl.TEXTURE_2D texture)
+                (gl.pixelStorei gl.UNPACK_FLIP_Y_WEBGL true)
+                (gl.texImage2D gl.TEXTURE_2D 0 gl.RGBA gl.RGBA gl.UNSIGNED_BYTE texture.image)
+                (gl.texParameteri gl.TEXTURE_2D gl.TEXTURE_MAG_FILTER gl.NEAREST)
+                (gl.texParameteri gl.TEXTURE_2D gl.TEXTURE_MIN_FILTER gl.NEAREST)
+                (gl.bindTexture gl.TEXTURE_2D null)
+                (set! textures (cons (list name texture) textures))))
+        (set! texture.image.src name)
+        ;; (console.log (+ "loading " name))
+        name)))
 
 (define (bind-texture gl shader name)
   (let ((texture (get-texture name)))

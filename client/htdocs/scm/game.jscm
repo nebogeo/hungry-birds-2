@@ -19,85 +19,16 @@
 (load "scm/butterfly/chromosome.jscm")
 (load "scm/butterfly/gui.jscm")
 (load "scm/butterfly/butterfly.jscm")
+(load "scm/server.jscm")
+(load "scm/butterfly/morph.jscm")
 
-(define (model-old)
+(define the-model
   (list
-   (gene-normalise
-    (list (allele "dennis-patch-on" 0.5)
-          (allele "dennis-patch-off" 0.5)))
-   (gene-normalise
-    (list (allele "hw-rays-on" 0.5)
-          (allele "hw-rays-off" 0.5)))
-   (gene-normalise
-    (list (allele "red-fw-band-on" 0.5)
-          (allele "red-fw-band-off" 0.5)))
-   (gene-normalise
-    (list (allele "yellow-fw-band-on" 0.5)
-          (allele "yellow-fw-band-off" 0.5)))
-   (gene-normalise
-    (list (allele "yellow-hw-bar-on" 0.5)
-          (allele "yellow-hw-bar-off" 0.5)))
-   ))
+   (list )))
 
-(define (model1)
-  (list
-    (list (allele "dennis-patch" 0.333)
-          (allele "hw-rays" 0.333)
-          (allele "red-fw-band" 0.333))
-    (list (allele "yellow-fw-band" 0.5)
-          (allele "yellow-hw-bar" 0.5))))
-
-;(define (model)
-;  (list
-;   (list (allele "red-band-ray" 0.2)
-;         (allele "red-band-dennis-yellow-bar" 0.2)
-;         (allele "white-band-yellow-bar-rays" 0.2)
-;         (allele "white-band-dennis" 0.2)
-;         (allele "yellow-bar" 0.2))))
-
-(define (model)
-  (list
-   (list (allele "red-band" 0.142)
-         (allele "red-band-yellow-bar" 0.142)
-         (allele "dennis-rays-yellow-band" 0.142)
-         (allele "dennis-yellow-band" 0.142)
-         (allele "yellow-band-yellow-bar" 0.142)
-         (allele "rays-yellow-band" 0.142)
-         (allele "red-yellow-bands" 0.142))))
+(define (model) the-model)
 
 (define start-chromo (model))
-
-(define (expr-to-number-old expr)
-  (parseInt
-   (string-append
-    (if (eq? (list-ref expr 0) "dennis-patch-on") "0" "1")
-    (if (eq? (list-ref expr 1) "hw-rays-on") "0" "1")
-    (if (eq? (list-ref expr 2) "red-fw-band-on") "0" "1")
-    (if (eq? (list-ref expr 3) "yellow-fw-band-on") "0" "1")
-    (if (eq? (list-ref expr 4) "yellow-hw-bar-on") "0" "1"))
-   2))
-
-(define (expr-to-number1 expr)
-  (parseInt
-   (string-append
-    (if (eq? (list-ref expr 0) "dennis-patch") "0" "1")
-    (if (eq? (list-ref expr 0) "hw-rays") "0" "1")
-    (if (eq? (list-ref expr 0) "red-fw-band") "0" "1")
-    (if (eq? (list-ref expr 1) "yellow-fw-band") "0" "1")
-    (if (eq? (list-ref expr 1) "yellow-hw-bar") "0" "1"))
-   2))
-
-;; 1-texture file number
-(define (expr-to-number expr)
-  (cond
-   ((eq? (list-ref expr 0) "red-band") 27)                ;; 0
-   ((eq? (list-ref expr 0) "red-band-yellow-bar") 26)     ;; 1
-   ((eq? (list-ref expr 0) "dennis-rays-yellow-band") 5)  ;; 2
-   ((eq? (list-ref expr 0) "dennis-yellow-band") 13)      ;; 3
-   ((eq? (list-ref expr 0) "yellow-band-yellow-bar") 28)  ;; 4
-   ((eq? (list-ref expr 0) "rays-yellow-band") 21)        ;; 5
-   ((eq? (list-ref expr 0) "red-yellow-bands") 25)        ;; 6
-   (else (msg expr) 0)))
 
 (define pop-size 15)
 (define butterfly-list ())
@@ -105,7 +36,6 @@
 (define toxic-expr ())
 (define toxic-example ())
 (define bg-tex (load-texture "bg.png"))
-(define test-tex (build-list 32 (lambda (i) (load-texture (+ "patterns/" (+ i 1) ".png")))))
 (define title-tex (load-texture "title.png"))
 (define flash 0)
 (define toxic-flash 0)
@@ -659,4 +589,14 @@
    "foam-logo-wos.png"
    ))
  (lambda ()
-   (start-game canvas ctx)))
+   (server-call-ret
+    "get-morphs" ()
+    (lambda (data)
+      (set! the-model
+            (list (map
+                   (lambda (m)
+                     (allele (morph-texture-name m) (morph-probability m)))
+                   (JSON.parse data))))
+      (set! start-model the-model)
+      (start-game canvas ctx)
+      ))))

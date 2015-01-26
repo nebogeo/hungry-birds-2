@@ -69,6 +69,12 @@
      ()
      l) #f))
 
+(define (assoc k l)
+  (foldl
+   (lambda (i r)
+     (if (eq? (car i) k) i r))
+   #f l))
+
 ;; index versions provide count for first argument
 
 (define index-foldl
@@ -235,6 +241,8 @@
     (when (eq? (not (+ 200 3)) 203) (display "+ failed"))
     (when (not (eq? (cond (#t (+ 3 2) (+ 100 1)) (else (+ 4 3))) 101)) (display "cond test failed"))
     (when (not (eq? (when #t (+ 3 2) (+ 100 1)) 101)) (display "when test failed"))
+    (when (not (eq? (cadr (assoc 2 (list (list 3 "one") (list 2 "three")))) "three")) (display "assoc test failed"))
+
     ))
 
 (unit-test)
