@@ -1,0 +1,662 @@
+;; -*- mode: scheme; -*-
+;; Egglab Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(load "scm/butterfly/chromosome.jscm")
+(load "scm/butterfly/gui.jscm")
+(load "scm/butterfly/butterfly.jscm")
+
+(define (model-old)
+  (list
+   (gene-normalise
+    (list (allele "dennis-patch-on" 0.5)
+          (allele "dennis-patch-off" 0.5)))
+   (gene-normalise
+    (list (allele "hw-rays-on" 0.5)
+          (allele "hw-rays-off" 0.5)))
+   (gene-normalise
+    (list (allele "red-fw-band-on" 0.5)
+          (allele "red-fw-band-off" 0.5)))
+   (gene-normalise
+    (list (allele "yellow-fw-band-on" 0.5)
+          (allele "yellow-fw-band-off" 0.5)))
+   (gene-normalise
+    (list (allele "yellow-hw-bar-on" 0.5)
+          (allele "yellow-hw-bar-off" 0.5)))
+   ))
+
+(define (model1)
+  (list
+    (list (allele "dennis-patch" 0.333)
+          (allele "hw-rays" 0.333)
+          (allele "red-fw-band" 0.333))
+    (list (allele "yellow-fw-band" 0.5)
+          (allele "yellow-hw-bar" 0.5))))
+
+;(define (model)
+;  (list
+;   (list (allele "red-band-ray" 0.2)
+;         (allele "red-band-dennis-yellow-bar" 0.2)
+;         (allele "white-band-yellow-bar-rays" 0.2)
+;         (allele "white-band-dennis" 0.2)
+;         (allele "yellow-bar" 0.2))))
+
+(define (model)
+  (list
+   (list (allele "red-band" 0.142)
+         (allele "red-band-yellow-bar" 0.142)
+         (allele "dennis-rays-yellow-band" 0.142)
+         (allele "dennis-yellow-band" 0.142)
+         (allele "yellow-band-yellow-bar" 0.142)
+         (allele "rays-yellow-band" 0.142)
+         (allele "red-yellow-bands" 0.142))))
+
+(define start-chromo (model))
+
+(define (expr-to-number-old expr)
+  (parseInt
+   (string-append
+    (if (eq? (list-ref expr 0) "dennis-patch-on") "0" "1")
+    (if (eq? (list-ref expr 1) "hw-rays-on") "0" "1")
+    (if (eq? (list-ref expr 2) "red-fw-band-on") "0" "1")
+    (if (eq? (list-ref expr 3) "yellow-fw-band-on") "0" "1")
+    (if (eq? (list-ref expr 4) "yellow-hw-bar-on") "0" "1"))
+   2))
+
+(define (expr-to-number1 expr)
+  (parseInt
+   (string-append
+    (if (eq? (list-ref expr 0) "dennis-patch") "0" "1")
+    (if (eq? (list-ref expr 0) "hw-rays") "0" "1")
+    (if (eq? (list-ref expr 0) "red-fw-band") "0" "1")
+    (if (eq? (list-ref expr 1) "yellow-fw-band") "0" "1")
+    (if (eq? (list-ref expr 1) "yellow-hw-bar") "0" "1"))
+   2))
+
+;; 1-texture file number
+(define (expr-to-number expr)
+  (cond
+   ((eq? (list-ref expr 0) "red-band") 27)                ;; 0
+   ((eq? (list-ref expr 0) "red-band-yellow-bar") 26)     ;; 1
+   ((eq? (list-ref expr 0) "dennis-rays-yellow-band") 5)  ;; 2
+   ((eq? (list-ref expr 0) "dennis-yellow-band") 13)      ;; 3
+   ((eq? (list-ref expr 0) "yellow-band-yellow-bar") 28)  ;; 4
+   ((eq? (list-ref expr 0) "rays-yellow-band") 21)        ;; 5
+   ((eq? (list-ref expr 0) "red-yellow-bands") 25)        ;; 6
+   (else (msg expr) 0)))
+
+(define pop-size 15)
+(define butterfly-list ())
+(define chromo ())
+(define toxic-expr ())
+(define toxic-example ())
+(define bg-tex (load-texture "bg.png"))
+(define test-tex (build-list 32 (lambda (i) (load-texture (+ "patterns/" (+ i 1) ".png")))))
+(define title-tex (load-texture "title.png"))
+(define flash 0)
+(define toxic-flash 0)
+(define health 100)
+(define hint-dur 100)
+(define hint-time 100)
+(define replenish-tick 0)
+(define start-time 0)
+(define edible-score 0)
+(define toxic-score 0)
+(define toxic-hit-time 1000)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; population stuff
+
+
+(define (build-population)
+  (set! chromo (model))
+  (set! toxic-expr (chromosome-express-toxic chromo))
+  (set! toxic-example (example-butterfly toxic-expr))
+  (set! butterfly-list
+        (list
+         (list (butterfly "edible" (chromosome-express chromo))
+               (butterfly "edible" (chromosome-express chromo)))
+         (list))))
+
+(define (build-demo-population fn)
+  (set! chromo (model))
+  (set! toxic-expr (chromosome-express-toxic chromo))
+  (set! butterfly-list
+        (list
+         (build-list 15 fn))))
+
+(define (build-comparison-population)
+  (set! butterfly-list
+        (list
+         (build-list 25 (lambda (i)
+                          (comp-butterfly
+                           (- (* (modulo i 5) 1.9) 10)
+                           (+ (quotient i 5) -3.5)
+                           (chromosome-express (model)))))
+         (build-list 25 (lambda (i)
+                          (comp-butterfly
+                           (+ (* (modulo i 5) 1.9) 2)
+                           (+ (quotient i 5) -3.5)
+                           (chromosome-express chromo)))))))
+
+
+(define (pop-similarity)
+  (*
+   (/
+    (foldl
+     (lambda (b r)
+       (+ r (expr-similarity (butterfly-expr b) toxic-expr)))
+     0
+     (car butterfly-list))
+    (length (car butterfly-list)))
+   100))
+
+(define (detect-hits butterfly-list c fn)
+  ;; find closest index
+  (let ((closest
+         (index-foldl
+          (lambda (i b r)
+            (let ((pos (butterfly-screen-pos b)))
+              (let ((dist (vdist (vector (game-mx c) (game-my c) 0) pos)))
+                (if (< dist (car r))
+                    (list dist i pos b) r))))
+          (list 999999 -1 0 0)
+          butterfly-list)))
+    ;; if less than hit dist
+    (cond
+     ((< (car closest) 50)
+      ;; remove it
+      (fn (list-ref closest 3) (list-ref closest 2))
+      (list #t (delete-n butterfly-list (cadr closest))))
+     (else (list #f butterfly-list)))))
+
+(define found 0)
+
+(define (detect-hits-butterflies butterfly-list c)
+  (let ((edible (detect-hits
+                 (list-ref butterfly-list 0) c
+                 (lambda (b pos)
+                   (make-gobble (vx pos) (vy pos) 0 255 0 0.05)
+                   (set! health (+ health 10))
+                   (set! flash 255)
+                   (set! found 1)
+                   (set! edible-score (+ edible-score 1))
+                   (set! chromo (chromosome-remove-expression chromo (butterfly-expr b))))
+                 )))
+    (if (car edible) ;; edible hit detected
+        (list (cadr edible) (list-ref butterfly-list 1))
+        (list (list-ref butterfly-list 0)
+              (cadr
+               (detect-hits ;; search for toxic hits
+                (list-ref butterfly-list 1) c
+                (lambda (b pos)
+                  (make-gobble (vx pos) (vy pos) 255 0 0 0.01)
+                  (set! health (- health 15))
+                  (set! toxic-flash 255)
+                  (set! toxic-hit-time 0)
+                  (set! toxic-score (+ toxic-score 1)))))))))
+
+(define (replenish type butterfly-list fn)
+  (if (< (length butterfly-list) pop-size)
+      (cons (butterfly type (fn)) butterfly-list)
+      butterfly-list))
+
+(define (replenish-butterflies butterfly-list)
+  (list
+   (replenish "edible" (list-ref butterfly-list 0) (lambda () (chromosome-express chromo)))
+   (replenish "toxic" (list-ref butterfly-list 1) (lambda () toxic-expr))))
+
+
+
+(define (render-intro)
+  (set! butterfly-list (map update-butterflies butterfly-list))
+  (for-each render-butterflies butterfly-list)
+
+;  (with-state
+;   (texture title-tex)
+;   (translate (vector 10 -4.5 0))
+;   (scale (vector 18 18 18))
+;   (render-big-butterfly))
+
+  (with-state
+   (texture bg-tex)
+   (translate (vector 0 0 -100))
+   (scale (vector 100 100 100))
+   (draw-cube)))
+
+(define (render-game)
+  (set! butterfly-list (map update-butterflies butterfly-list))
+  (for-each render-butterflies butterfly-list)
+
+  (with-state
+   (texture bg-tex)
+   (translate (vector 0 0 -100))
+   (scale (vector 100 100 100))
+   (draw-cube)))
+
+(define comp-time 0)
+
+(define (render-comparison)
+  (set! butterfly-list
+        (list
+         (update-comp-butterflies (list-ref butterfly-list 0) 0.01)
+         (update-comp-butterflies (list-ref butterfly-list 1)
+                                  (if (< (- (time) comp-time) 2) 0 0.01))))
+
+  (for-each render-butterflies butterfly-list)
+
+   (with-state
+   (translate (vector 0 0.7 0))
+   (scale (vector 0.75 0.75 0.75))
+   (render-butterfly toxic-example))
+
+;  (with-state
+;   (texture title-tex)
+;   (translate (vector 10 -4.5 0))
+;   (scale (vector 18 18 18))
+;   (render-big-butterfly))
+
+  (with-state
+   (texture bg-tex)
+   (translate (vector 0 0 -100))
+   (scale (vector 100 100 100))
+   (draw-cube)))
+
+
+(define (render-more-info-1)
+  (set! butterfly-list
+        (list
+         (update-comp-butterflies (list-ref butterfly-list 0) 0.01)
+         (update-comp-butterflies (list-ref butterfly-list 1)
+                                  (if (< (- (time) comp-time) 2) 0 0.01))))
+
+  (for-each render-butterflies butterfly-list)
+
+   (with-state
+   (translate (vector 0 2 0))
+   (scale (vector 0.75 0.75 0.75))
+   (render-butterfly toxic-example))
+
+  (with-state
+   (texture bg-tex)
+   (translate (vector 0 0 -100))
+   (scale (vector 100 100 100))
+   (draw-cube)))
+
+(define (render-more-info-2)
+   (with-state
+   (translate (vector 0 -1.4 0))
+   (scale (vector 0.75 0.75 0.75))
+   (render-butterfly toxic-example))
+
+  (with-state
+   (texture bg-tex)
+   (translate (vector 0 0 -100))
+   (scale (vector 100 100 100))
+   (draw-cube)))
+
+
+
+(define (nightjar-intro c)
+  (every-frame (render-intro))
+  (build-demo-population
+   (lambda (i)
+     (let ((i (* i (/ (* 2 3.141) 15))))
+       (demo-butterfly
+        (vector 0 0 0) (vector (sin i) (cos i) 0)
+        (* i 0.1) 0 0.01 10))))
+  (game-modify-mouse-hook
+   (lambda (e c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (set! ctx.font "normal 50pt amatic")
+      (wrap-text ctx "Hungry Bird Game" 0 380)
+      (set! ctx.font "normal 30pt amatic")
+      (wrap-text ctx "Catch butterflies for citizen science!" 0 430))
+    (game-modify-buttons
+     (list
+      (image-button
+       "PLAY!" 620 550 "jumpy" (find-image "button.png")
+       (lambda (c)
+         (build-population)
+         (nightjar-show-toxic c)))
+
+      (image-button
+       "Made by" 620 710 "" (find-image "foam-logo-wos.png")
+       (lambda (c)
+         (set! window.location "http://fo.am/kernow")
+         c)))
+     c))))
+
+
+(define (nightjar-show-toxic c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 40pt amatic")
+     (wrap-text ctx "You are a hungry bird!" 0 400)
+     (wrap-text ctx "Eat the butterflies to stay alive!" 0 480)
+     (draw-health ctx 450 30 100 100)
+     (set! ctx.fillStyle "#fff")
+     (set! ctx.strokeStyle "#fff")
+;;     (set! ctx.font "normal 30pt amatic")
+;;     (wrap-text ctx "Tip - try to remember the wing patterns." 0 500)
+     )
+   (game-modify-buttons
+    (list
+
+     (image-button
+      "GO!" 620 650 "jumpy" (find-image "button.png")
+      (lambda (c)
+        (set! health 100)
+        (set! start-time (time))
+        (set! hint-time 100)
+        (set! edible-score 0)
+        (set! toxic-score 0)
+        (set! toxic-hit-time 1000)
+        (nightjar-game c)))
+
+     )
+    c)))
+
+(define (nightjar-game c)
+  (every-frame (render-game))
+  (game-modify-update
+   (lambda (t c)
+     (if (< health 1)
+         (begin
+           ;; rebuild chromo from visible population
+           (set! chromo (chromo-from-pop
+                         chromo
+                         (map (lambda (b) (butterfly-expr b))
+                              (list-ref butterfly-list 0))))
+           (nightjar-game-over c))
+         c))
+  (game-modify-mouse-hook
+   (lambda (e c)
+     (when (and (eq? e "down") (> toxic-hit-time 99))
+           (set! butterfly-list (detect-hits-butterflies butterfly-list c))
+           ;; instantly replace edible butterfly
+           (when (not (zero? found))
+                 (set! butterfly-list
+                       (list
+                        (replenish "edible" (list-ref butterfly-list 0) (lambda () (chromosome-express chromo)))
+                        (list-ref butterfly-list 1)))
+                 (set! found 0)))
+
+     c)
+   (game-modify-render
+    (lambda (ctx)
+
+      (when (> replenish-tick 50)
+            (set! replenish-tick 0)
+            (set! butterfly-list (replenish-butterflies butterfly-list)))
+      (set! replenish-tick (+ (* 100 (game-time-delta c)) replenish-tick))
+
+
+      (set! flash (* flash 0.9))
+      (set! toxic-flash (* toxic-flash 0.9))
+      (set! health (clamp (- health (* 75 (game-time-delta c))) 0 100))
+      (set! hint-time (+ hint-time 0.1))
+
+
+      ;; (draw-pie ctx 1100 700 health 100 0 220 120)
+
+      (when (> flash 10)
+            (draw-flash ctx 495 65
+                        200
+                        0 255 0 (/ flash 255)))
+
+      (when (> toxic-flash 10)
+            (draw-flash ctx 495 65
+                        200
+                        255 127 200 (/ toxic-flash 255)))
+
+
+      ;;(draw-chromosome ctx 50 630 chromo)
+      ;;(draw-expr ctx 50 350 toxic-expr)
+
+      (set! ctx.strokeStyle "#fff")
+
+      (when (and (< health 20) (< (modulo hint-time 2) 1))
+            (set! ctx.fillStyle "#f00")
+            (set! ctx.font "bold 40pt amatic")
+            (wrap-text ctx "Health Is Low!" 0 400))
+
+      (when (and (< toxic-hit-time 100))
+            (set! toxic-hit-time (+ toxic-hit-time (* 600 (game-time-delta c))))
+            (set! ctx.fillStyle "#f00")
+            (set! ctx.font "bold 60pt amatic")
+            (draw-toxic-bg ctx)
+            (set! ctx.fillStyle "#fff")
+            (wrap-text ctx "UGH!" 0 200 500 100)
+            (set! ctx.font "bold 50pt amatic")
+            (wrap-text ctx "That butterfly tasted disgusting!" 0 700)
+            (with-state
+             (translate (vector 0 -0.3 2))
+             (render-butterfly toxic-example)))
+
+      (draw-health ctx 450 30 health 100)
+
+      ;;(set! ctx.font "bold 40pt amatic")
+      ;;(set! ctx.fillStyle "#fff")
+      ;;(ctx.fillText (string-append "Similarity:" (number-display (pop-similarity)) "%") 20 700)
+
+;      (when (> hint-time hint-dur)
+;            (when (< (modulo hint-time 2) 1)
+;                  (for-each
+;                   (lambda (b)
+;                     (let ((pos (butterfly-screen-pos b)))
+;                       (set! ctx.strokeStyle "#f00")
+;                       (set! ctx.fillStyle "#f00")
+;                       (set! ctx.lineWidth 5)
+;                       (ctx.beginPath)
+;                       (ctx.arc (vx pos) (vy pos) 50 0 (* Math.PI 2) true)
+;                       (ctx.closePath)
+;                       (ctx.stroke)
+;                       (set! ctx.font "bold 40pt amatic")
+;                       (ctx.fillText "TOXIC!!" (- (vx pos) 50) (- (vy pos) 60))
+;                       ))
+;                   (list-ref butterfly-list 1))
+;                  (for-each
+;                   (lambda (b)
+;                     (let ((pos (butterfly-screen-pos b)))
+;                       (set! ctx.strokeStyle "#0f0")
+;                       (set! ctx.fillStyle "#0f0")
+;                       (set! ctx.lineWidth 5)
+;                       (ctx.beginPath)
+;                       (ctx.arc (vx pos) (vy pos) 50 0 (* Math.PI 2) true)
+;                       (ctx.closePath)
+;                       (ctx.stroke)
+;                       (set! ctx.font "bold 40pt amatic")
+;                       (ctx.fillText "Edible" (- (vx pos) 50) (- (vy pos) 60))
+;                       ))
+;                   (list-ref butterfly-list 0)))
+;            (when (> hint-time (+ hint-dur 20)) (set! hint-time 0)))
+
+      ;(set! ctx.fillStyle "#fff")
+      ;(set! ctx.font "bold 20pt amatic")
+
+      ;      (wrap-text ctx
+      ;           (string-append "Alelle decrease: " (number-display allele-decrease))
+      ;           -440 280 1000 1000)
+
+      (draw-gobble ctx)
+      )
+    (game-modify-buttons
+     (list
+;      (image-button
+;       "" 80 280 "none" (find-image "plus.png")
+;       (lambda (c)
+;         (set! allele-decrease (+ allele-decrease 0.01))
+;         c))
+
+ ;     (image-button
+ ;      "" 50 280 "none" (find-image "minus.png")
+ ;      (lambda (c)
+ ;        (set! allele-decrease (- allele-decrease 0.01))
+ ;        c))
+
+      )
+     c)))))
+
+(define (nightjar-game-over c)
+  (set! comp-time (time))
+  (build-comparison-population)
+  (every-frame (render-comparison))
+  (let ((score (number-display (- (time) start-time))))
+    (game-modify-update
+     (lambda (t c) c)
+     (game-modify-mouse-hook
+      (lambda (e c) c)
+      (game-modify-render
+       (lambda (ctx)
+         (set! ctx.font "normal 40pt amatic")
+         (wrap-text ctx "Game Over" 0 100)
+         (set! ctx.font "bold 40pt amatic")
+         (wrap-text ctx (string-append "You survived " score " seconds") 0 170)
+         (set! ctx.font "normal 35pt amatic")
+         (wrap-text ctx "The toxic species all had this pattern" 0 240)
+         (wrap-text ctx "The edible species at the start" -350 340)
+         (wrap-text ctx "The edible species at the end" 350 340)
+
+         (draw-chromosome ctx 190 640 start-chromo)
+         (draw-chromosome ctx 860 640 chromo)
+         (set! ctx.fillStyle "#fff")
+
+         (set! ctx.font "normal 40pt amatic"))
+       (game-modify-buttons
+        (list
+         (image-button
+          "Learn more" 500 750 "jumpy" (find-image "button.png")
+          (lambda (c)
+            (nightjar-more-info-1 c)))
+         (image-button
+          "Play again!" 740 750 "jumpy" (find-image "button.png")
+          (lambda (c)
+            (nightjar-intro c)))
+         )
+        c))))))
+
+(define (nightjar-more-info-1 c)
+  (every-frame (render-more-info-1))
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-mouse-hook
+    (lambda (e c) c)
+    (game-modify-render
+     (lambda (ctx)
+       (set! ctx.font "normal 40pt amatic")
+       (wrap-text ctx "You have made mimicry evolve by natural selection!" 0 50)
+       (set! ctx.font "normal 30pt amatic")
+       (wrap-text ctx "When eating the butterflies, you learnt to avoid toxic ones that all had this colour pattern:" 0 100)
+       (wrap-text ctx "But you also avoided edible ones that had the same pattern!" 0 250)
+       (set! ctx.font "normal 25pt amatic")
+       (wrap-text ctx "This reduced the number of edible butterflies" -350 300)
+       (wrap-text ctx "that had different patterns..." -350 340)
+       (wrap-text ctx "...and increased the number that had" 340 300)
+       (wrap-text ctx "the same pattern as the toxic one." 340 340)
+
+       (set! ctx.fillStyle "#fff")
+
+       (set! ctx.font "normal 40pt amatic"))
+     (game-modify-buttons
+      (list
+       (image-button
+        "Play again!" 740 750 "jumpy" (find-image "button.png")
+        (lambda (c)
+          (nightjar-intro c)))
+       (image-button
+        "Learn more" 500 750 "jumpy" (find-image "button.png")
+        (lambda (c)
+          (nightjar-more-info-2 c)))
+       )
+      c)))))
+
+
+(define (nightjar-more-info-2 c)
+  (every-frame (render-more-info-2))
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-mouse-hook
+    (lambda (e c) c)
+    (game-modify-render
+     (lambda (ctx)
+       (set! ctx.font "normal 30pt amatic")
+       (wrap-text ctx "The presence or absence of each of the wing colour pattern elements is controlled genetically." 0 50)
+
+       (set! ctx.font "normal 30pt amatic")
+       (wrap-text ctx "When you eat the butterflies you remove some of these genes from the population." 0 100)
+
+       (ctx.drawImage (find-image (string-append "alelle-1.png")) 200 120)
+       (ctx.drawImage (find-image (string-append "alelle-2.png")) 400 120)
+       (ctx.drawImage (find-image (string-append "alelle-3.png")) 600 120)
+       (ctx.drawImage (find-image (string-append "alelle-4.png")) 800 120)
+       (ctx.drawImage (find-image (string-append "alelle-5.png")) 1000 120)
+
+       (set! ctx.font "normal 20pt amatic")
+       (wrap-text ctx "dennis" -390 200)
+       (wrap-text ctx "rays" -190 200)
+       (wrap-text ctx "red band" 10 200)
+       (wrap-text ctx "yellow band" 210 200)
+       (wrap-text ctx "yellow bar" 410 200)
+
+       (set! ctx.font "normal 30pt amatic")
+       (wrap-text ctx "This increases or decreases the frequency of the wing colour pattern elements in the population:" 0 250)
+
+       (draw-chromosome ctx 190 280 start-chromo)
+       (draw-chromosome ctx 860 280 chromo)
+
+       (set! ctx.fillStyle "#fff")
+       (set! ctx.font "normal 25pt amatic")
+       (wrap-text ctx "The patterns that are present in the toxic butterfly probably increased and the patterns that are absent probably decreased." 0 480)
+
+       (set! ctx.font "normal 30pt amatic")
+       (wrap-text ctx "The change in the genes controlling the colour patterns produces evolutionary change." 0 650)
+
+       (set! ctx.font "normal 40pt amatic"))
+     (game-modify-buttons
+      (list
+       (image-button
+        "Play again!" 620 750 "jumpy" (find-image "button.png")
+        (lambda (c)
+          (nightjar-intro c)))
+       )
+      c)))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; startup
+(set! ctx.font "normal 10pt amatic")
+
+(load-images!
+ (append
+  (list
+   "heliconius.png"
+   "plus.png"
+   "minus.png"
+   "button.png"
+   "alelle-1.png"
+   "alelle-2.png"
+   "alelle-3.png"
+   "alelle-4.png"
+   "alelle-5.png"
+   "health.png"
+   "foam-logo-wos.png"
+   ))
+ (lambda ()
+   (start-game canvas ctx)))
