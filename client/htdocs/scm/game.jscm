@@ -463,19 +463,19 @@
          (wrap-text ctx "The edible species at the start" -350 340)
          (wrap-text ctx "The edible species at the end" 350 340)
 
-         (draw-chromosome ctx 190 640 start-chromo)
-         (draw-chromosome ctx 860 640 chromo)
+;;         (draw-chromosome ctx 190 640 start-chromo)
+;;         (draw-chromosome ctx 860 640 chromo)
          (set! ctx.fillStyle "#fff")
 
          (set! ctx.font "normal 40pt amatic"))
        (game-modify-buttons
         (list
+;;         (image-button
+;;          "Learn more" 500 750 "jumpy" (find-image "button.png")
+;;          (lambda (c)
+;;            (nightjar-more-info-1 c)))
          (image-button
-          "Learn more" 500 750 "jumpy" (find-image "button.png")
-          (lambda (c)
-            (nightjar-more-info-1 c)))
-         (image-button
-          "Play again!" 740 750 "jumpy" (find-image "button.png")
+          "Play again!" 620 750 "jumpy" (find-image "button.png")
           (lambda (c)
             (nightjar-intro c)))
          )
@@ -600,3 +600,4 @@
       (set! start-model the-model)
       (start-game canvas ctx)
       ))))
+h
