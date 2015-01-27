@@ -13,7 +13,7 @@
    20 40)) ;; speed
 
 (define (demo-butterfly pos dir fuzz tex turn speed)
-  (list "demo" pos dir fuzz (load-texture (string-append "uploads/" tex)) () turn "demo" speed 40))
+  (list "demo" pos dir fuzz (load-texture "morph.png") () turn "demo" speed 40))
 
 (define (example-butterfly expr)
   (list
