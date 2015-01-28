@@ -20,36 +20,25 @@
 
 (define (setup db)
   (exec/ignore db "CREATE TABLE player ( id INTEGER PRIMARY KEY AUTOINCREMENT, species TEXT, played_before INTEGER, age_range INTEGER, score INTEGER)")
-  (exec/ignore db "CREATE TABLE click ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, photo_name TEXT, photo_offset_x INTEGER, photo_offset_y INTEGER, time_stamp INTEGER, x_position INTEGER, y_position INTEGER, success INTEGER )")
+  (exec/ignore db "CREATE TABLE eaten ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, morph TEXT, toxic INTEGER, time_stamp INTEGER )")
   (exec/ignore db "CREATE TABLE morph ( id INTEGER PRIMARY KEY AUTOINCREMENT, texture_name TEXT, probability INTEGER, active INTEGER, can_be_toxic INTEGER, wing_shape INTEGER )")
 
   )
 
 (define (insert-player db species played_before age_range)
-  (log "player " species " " played_before " " age_range)
   (insert db (string-append
               "INSERT INTO player VALUES (NULL, '"
               species "', '"
               (if (equal? played_before "false") "0" "1") "', '"
               age_range "', 999999)")))
 
-(define (insert-click db player_id photo_name photo_offset_x photo_offset_y time_stamp x_position y_position success)
-  (log "click " player_id " " photo_name " " photo_offset_x " " photo_offset_y " " time_stamp " " x_position " " y_position " " success)
-  (insert db (string-append
-              "INSERT INTO click VALUES (NULL, '"
-              player_id "', '"
-              photo_name "', '"
-              photo_offset_x "', '"
-              photo_offset_y "', '"
-              time_stamp "', '"
-              x_position "', '"
-              y_position "', '"
-              success "')")))
+(define (insert-eaten db player_id morph toxic time_stamp)
+  (insert db "INSERT INTO eaten VALUES (NULL, ?, ?, ?, ?)"
+          player_id morph toxic time_stamp))
 
 (define (insert-morph db texture_name probability active can_be_toxic wing_shape)
-  (insert db (string-append
-              "INSERT INTO morph VALUES (NULL, ?, ?, ?, ?, ?)")
-              texture_name probability active can_be_toxic wing_shape))
+  (insert db "INSERT INTO morph VALUES (NULL, ?, ?, ?, ?, ?)"
+          texture_name probability active can_be_toxic wing_shape))
 
 (define (update-morph db id probability active can_be_toxic wing_shape)
   (exec/ignore

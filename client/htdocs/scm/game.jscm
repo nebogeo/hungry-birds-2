@@ -120,6 +120,13 @@
   (let ((edible (detect-hits
                  (list-ref butterfly-list 0) c
                  (lambda (b pos)
+                   (server-call-ret
+                    "eaten"
+                    (list (list "player_id" 0)
+                          (list "morph" (car (butterfly-expr b)))
+                          (list "toxic" 0)
+                          (list "time_stamp" (Date.now)))
+                    (lambda (data) 0))
                    (make-gobble (vx pos) (vy pos) 0 255 0 0.05)
                    (set! health (+ health 10))
                    (set! flash 255)
@@ -128,17 +135,24 @@
                    (set! chromo (chromosome-remove-expression chromo (butterfly-expr b))))
                  )))
     (if (car edible) ;; edible hit detected
-        (list (cadr edible) (list-ref butterfly-list 1))
-        (list (list-ref butterfly-list 0)
-              (cadr
-               (detect-hits ;; search for toxic hits
-                (list-ref butterfly-list 1) c
-                (lambda (b pos)
-                  (make-gobble (vx pos) (vy pos) 255 0 0 0.01)
-                  (set! health (- health 15))
-                  (set! toxic-flash 255)
-                  (set! toxic-hit-time 0)
-                  (set! toxic-score (+ toxic-score 1)))))))))
+     (list (cadr edible) (list-ref butterfly-list 1))
+     (list (list-ref butterfly-list 0)
+           (cadr
+            (detect-hits ;; search for toxic hits
+              (list-ref butterfly-list 1) c
+              (lambda (b pos)
+                (server-call-ret
+                 "eaten"
+                 (list (list "player_id" 0)
+                       (list "morph" (car (butterfly-expr b)))
+                       (list "toxic" 1)
+                       (list "time_stamp" (Date.now)))
+                 (lambda (data) 0))
+                (make-gobble (vx pos) (vy pos) 255 0 0 0.01)
+                (set! health (- health 15))
+                (set! toxic-flash 255)
+                (set! toxic-hit-time 0)
+                (set! toxic-score (+ toxic-score 1)))))))))
 
 (define (replenish type butterfly-list fn)
   (if (< (length butterfly-list) pop-size)

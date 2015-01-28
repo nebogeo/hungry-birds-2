@@ -93,11 +93,12 @@
       (match (bindings-assq #"texture_name" (request-bindings/raw req))
              ((struct binding:file (id filename headers content))
               (let ((fn (bytes->string/utf-8 filename)))
-                (with-output-to-file
-                    (string-append "textures/uploads/" fn) #:exists 'replace
-                    (lambda ()
-                      (write-bytes content)))
-                (insert-morph db fn 1 1 1 1))))
+                (when (not (equal? fn ""))
+                      (with-output-to-file
+                          (string-append "textures/uploads/" fn) #:exists 'replace
+                          (lambda ()
+                            (write-bytes content)))
+                      (insert-morph db fn 1 1 1 1)))))
       (redirect-to "admin.html")))
 
    (register
@@ -119,32 +120,9 @@
         (pluto-response (scheme->json (list id))))))
 
    (register
-    (req 'click '(player_id
-                  photo_name
-                  photo_offset_x
-                  photo_offset_y
-                  time_stamp
-                  x_position
-                  y_position
-                  success))
-    (lambda (req player_id
-             photo_name
-             photo_offset_x
-             photo_offset_y
-             time_stamp
-             x_position
-             y_position
-             success)
-      (let* ((id (insert-click
-                  db
-                  player_id
-                  photo_name
-                  (number->string (inexact->exact (round (string->number photo_offset_x))))
-                  (number->string (inexact->exact (round (string->number photo_offset_y))))
-                  time_stamp
-                  x_position
-                  y_position
-                  success)))
+    (req 'eaten '(player_id morph toxic time_stamp))
+    (lambda (req player_id morph toxic time_stamp)
+      (let* ((id (insert-eaten db player_id morph toxic time_stamp)))
         (pluto-response (scheme->json '())))))
 
    (register
