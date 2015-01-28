@@ -120,9 +120,9 @@
         (pluto-response (scheme->json (list id))))))
 
    (register
-    (req 'eaten '(player_id morph toxic time_stamp))
-    (lambda (req player_id morph toxic time_stamp)
-      (let* ((id (insert-eaten db player_id morph toxic time_stamp)))
+    (req 'eaten '(player_id morph toxic time_stamp game toxic_morph))
+    (lambda (req player_id morph toxic time_stamp game toxic_morph)
+      (let* ((id (insert-eaten db player_id morph toxic time_stamp game toxic_morph)))
         (pluto-response (scheme->json '())))))
 
 

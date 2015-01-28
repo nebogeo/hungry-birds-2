@@ -25,7 +25,6 @@
    textures))
 
 (define (load-texture-impl! gl name)
-  (msg (assoc name textures))
   (if (assoc name textures)
       name
       (let ((texture (gl.createTexture)))
