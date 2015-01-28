@@ -47,6 +47,12 @@
 (define edible-score 0)
 (define toxic-score 0)
 (define toxic-hit-time 1000)
+(define player-age 0)
+(define player-id 0)
+
+(define default-button-x (- (/ screen-width 2) 0))
+(define default-button-y (+ (/ screen-height 2) 20))
+(define button-gap 250)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; population stuff
@@ -122,7 +128,7 @@
                  (lambda (b pos)
                    (server-call-ret
                     "eaten"
-                    (list (list "player_id" 0)
+                    (list (list "player_id" player-id)
                           (list "morph" (car (butterfly-expr b)))
                           (list "toxic" 0)
                           (list "time_stamp" (Date.now)))
@@ -143,7 +149,7 @@
               (lambda (b pos)
                 (server-call-ret
                  "eaten"
-                 (list (list "player_id" 0)
+                 (list (list "player_id" player-id)
                        (list "morph" (car (butterfly-expr b)))
                        (list "toxic" 1)
                        (list "time_stamp" (Date.now)))
@@ -277,7 +283,7 @@
        "PLAY!" 620 550 "jumpy" (find-image "button.png")
        (lambda (c)
          (build-population)
-         (nightjar-show-toxic c)))
+         (nightjar-age-screen c)))
 
       (image-button
        "Made by" 620 710 "" (find-image "foam-logo-wos.png")
@@ -286,6 +292,82 @@
          c)))
      c))))
 
+
+(define (nightjar-age-screen c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt amatic")
+     (nightjar-all-text ctx "What is your age?"))
+   (game-modify-buttons
+    (let ((age-but
+           (lambda (title id)
+             (image-button
+              title
+              default-button-x
+              (+ (- default-button-y 200) (* id 100))
+              #t
+              (find-image "button.png")
+              (lambda (c)
+                (play-sound "sound/button.wav")
+                (set! player-age id)
+                (nightjar-played-before-screen c))))))
+
+      (list
+       (age-but "Younger than 10" 1)
+       (age-but "10 to 15" 2)
+       (age-but "16 to 35" 3)
+       (age-but "36 to 50" 4)
+       (age-but "Older than 50" 5))
+     )
+    c)))
+
+(define (nightjar-played-before-screen c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt amatic")
+     (nightjar-all-text
+      ctx
+      (+ "Have you played this game before?")))
+   (game-modify-buttons
+    (list
+
+     (image-button
+      "Yes"
+      (+ default-button-x button-gap)
+      default-button-y
+      #t
+      (find-image "button.png")
+      (lambda (c)
+        (play-sound "sound/button.wav")
+        (build-population)
+        (server-call-ret
+         "player"
+         (list (list "played_before" 1)
+               (list "age_range" player-age))
+         (lambda (data)
+           (set! player-id (car (JSON.parse data)))))
+
+        (nightjar-show-toxic c)))
+
+     (image-button
+      "No"
+      (- default-button-x button-gap)
+      default-button-y
+      #t
+      (find-image "button.png")
+      (lambda (c)
+        (play-sound "sound/button.wav")
+        (build-population)
+
+        (server-call-ret
+         "player"
+         (list (list "played_before" 0)
+               (list "age_range" player-age))
+         (lambda (data)
+           (set! player-id (car (JSON.parse data)))))
+
+        (nightjar-show-toxic c)))
+    ) c)))
 
 (define (nightjar-show-toxic c)
   (game-modify-render

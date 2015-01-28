@@ -19,18 +19,31 @@
 (require "logger.ss")
 
 (define (setup db)
-  (exec/ignore db "CREATE TABLE player ( id INTEGER PRIMARY KEY AUTOINCREMENT, species TEXT, played_before INTEGER, age_range INTEGER, score INTEGER)")
+  (exec/ignore db "CREATE TABLE player ( id INTEGER PRIMARY KEY AUTOINCREMENT, played_before INTEGER, age_range INTEGER, score INTEGER)")
   (exec/ignore db "CREATE TABLE eaten ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, morph TEXT, toxic INTEGER, time_stamp INTEGER )")
   (exec/ignore db "CREATE TABLE morph ( id INTEGER PRIMARY KEY AUTOINCREMENT, texture_name TEXT, probability INTEGER, active INTEGER, can_be_toxic INTEGER, wing_shape INTEGER )")
-
+  (exec/ignore db "CREATE TABLE player_name ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, player_name TEXT )")
   )
 
-(define (insert-player db species played_before age_range)
-  (insert db (string-append
-              "INSERT INTO player VALUES (NULL, '"
-              species "', '"
-              (if (equal? played_before "false") "0" "1") "', '"
-              age_range "', 999999)")))
+(define (insert-player db played_before age_range)
+  (insert db "insert into player values (NULL, ?, ?, 0)"
+          played_before
+          age_range))
+
+(define (insert-player-name db player_id player_name)
+  (log "player name " player_id " " player_name)
+  (insert db "insert into player_name VALUES (NULL, ?, ?)"
+          player_id player_name ))
+
+(define (set-player-score db player-id score)
+  (exec/ignore
+   db "update player set score = ? where id = ?" score player-id))
+
+(define (get-hiscores db)
+  (map
+   (lambda (i)
+     (list (vector-ref i 0) (vector-ref i 1)))
+   (cdr (select db "select n.player_name, p.score from player as p join player_name as n on p.id=n.player_id order by p.score limit 100;"))))
 
 (define (insert-eaten db player_id morph toxic time_stamp)
   (insert db "INSERT INTO eaten VALUES (NULL, ?, ?, ?, ?)"

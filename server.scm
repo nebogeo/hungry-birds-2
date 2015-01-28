@@ -113,10 +113,10 @@
       (pluto-response (scheme->json '("ok")))))
 
    (register
-    (req 'player '(req species played_before age_range))
-    (lambda (req species played-before age-range)
-      (let* ((id (insert-player db species played-before age-range)))
-        (display id)(newline)
+    (req 'player '(played_before age_range))
+    (lambda (req played_before age_range)
+      (display (list played_before age_range))(newline)
+      (let* ((id (insert-player db played_before age_range)))
         (pluto-response (scheme->json (list id))))))
 
    (register
@@ -125,15 +125,27 @@
       (let* ((id (insert-eaten db player_id morph toxic time_stamp)))
         (pluto-response (scheme->json '())))))
 
+
    (register
-    (req 'score '(player_id))
-    (lambda (req player-id)
-      (let ((av (get-player-average db (string->number player-id)))
-            (c (get-player-count db (string->number player-id))))
-        (pluto-response
-         (scheme->json (list av
-                             (get-player-rank db av)
-                             (if (not c) 0 c)))))))))
+    (req 'score '(player_id score))
+    (lambda (req player-id score)
+      (set-player-score db player-id score)
+      (pluto-response
+         (scheme->json (list)))))
+
+   (register
+    (req 'hiscores '())
+    (lambda ()
+      (pluto-response
+       (scheme->json (get-hiscores db)))))
+
+   (register
+    (req 'player-name '(player_id player_name))
+    (lambda (player_id player_name)
+      (insert-player-name db player_id player_name)
+      (pluto-response (scheme->json '()))))))
+
+
 
 (define (start request)
   (let ((values (url-query (request-uri request))))
