@@ -30,7 +30,15 @@
 (define (server-call name argsl)
   (let ((args (build-url-args argsl)))
     (set! args.fn name)
-    (let ((v ($.get "egglab" args)))
+    (let ((v ($.get "game" args)))
+      (v.fail (lambda (jqXHR textStatus errorThrown)
+                (msg textStatus)
+                (msg errorThrown))))))
+
+(define (server-call-ret name argsl f)
+  (let ((args (build-url-args argsl)))
+    (set! args.fn name)
+    (let ((v ($.get "game" args f)))
       (v.fail (lambda (jqXHR textStatus errorThrown)
                 (msg textStatus)
                 (msg errorThrown))))))
@@ -38,7 +46,7 @@
 (define (server-call-mutate name argsl f)
   (let ((args (build-url-args argsl)))
     (set! args.fn name)
-    (let ((v ($.get "egglab" args (mutate-game f))))
+    (let ((v ($.get "game" args (mutate-game f))))
       (v.fail (lambda (jqXHR textStatus errorThrown)
                 (msg textStatus)
                 (msg errorThrown))))))
@@ -131,6 +139,22 @@
                  (wrap-text-inner
                   (cdr words) test-line y))))))))
   (wrap-text-inner (text.split " ") "" y))
+
+(define (shadow-text ctx text x y)
+  (set! ctx.fillStyle "#000")
+  (ctx.fillText text (+ x 4) (+ y 4))
+  (set! ctx.fillStyle "#fff")
+  (ctx.fillText text x y))
+
+
+(define (wrap-shadow-text ctx text x y max-width line-height)
+  (set! ctx.fillStyle "#000")
+  (ctx.save)
+  (ctx.translate 4 4)
+  (wrap-text ctx text x y max-width line-height)
+  (ctx.restore)
+  (set! ctx.fillStyle "#fff")
+  (wrap-text ctx text x y max-width line-height))
 
 (define (sprite x y image timer)
   (list x y image timer))

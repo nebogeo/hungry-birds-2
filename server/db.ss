@@ -19,14 +19,39 @@
 (require "logger.ss")
 
 (define (setup db)
-  (exec/ignore db "CREATE TABLE player ( id INTEGER PRIMARY KEY AUTOINCREMENT, played_before INTEGER, age_range INTEGER, score INTEGER)")
+  (exec/ignore db "CREATE TABLE player ( id INTEGER PRIMARY KEY AUTOINCREMENT, played_before INTEGER, age_range INTEGER)")
   (exec/ignore db "CREATE TABLE eaten ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, morph TEXT, toxic INTEGER, time_stamp INTEGER, game INTEGER, toxic_morph TEXT )")
   (exec/ignore db "CREATE TABLE morph ( id INTEGER PRIMARY KEY AUTOINCREMENT, texture_name TEXT, probability INTEGER, active INTEGER, can_be_toxic INTEGER, wing_shape INTEGER )")
   (exec/ignore db "CREATE TABLE player_name ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, player_name TEXT )")
+  (exec/ignore db "create table hiscores ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, score real)")
   )
 
+(define (nuke db)
+  (exec/ignore db "delete from player")
+  (exec/ignore db "delete from eaten")
+  (exec/ignore db "delete from morph")
+  (exec/ignore db "delete from player_name")
+  (exec/ignore db "delete from hiscores"))
+
+(define (table->csv db table)
+  (define (list->csv l)
+    (cond
+     ((null? l) "")
+     (else (string-append
+            (if (string? (car l))
+                (string-append "\"" (car l) "\"")
+                (number->string (car l))) ", " (list->csv (cdr l))))))
+  (define (rows->csv d)
+    (cond
+     ((null? d) "")
+     (else (string-append (list->csv (vector->list (car d))) "\n" (rows->csv (cdr d))))))
+  (let ((s (select db (string-append "select * from " table))))
+    (if (null? s)
+        ""
+        (rows->csv s))))
+
 (define (insert-player db played_before age_range)
-  (insert db "insert into player values (NULL, ?, ?, 0)"
+  (insert db "insert into player values (NULL, ?, ?)"
           played_before
           age_range))
 
@@ -37,13 +62,14 @@
 
 (define (set-player-score db player-id score)
   (exec/ignore
-   db "update player set score = ? where id = ?" score player-id))
+   db "insert into hiscores values (NULL, ?, ?)"
+   player-id score))
 
 (define (get-hiscores db)
   (map
    (lambda (i)
      (list (vector-ref i 0) (vector-ref i 1)))
-   (cdr (select db "select n.player_name, p.score from player as p join player_name as n on p.id=n.player_id order by p.score limit 100;"))))
+   (cdr (select db "select n.player_name, p.score from hiscores as p join player_name as n on p.player_id=n.player_id order by p.score desc limit 100;"))))
 
 (define (insert-eaten db player_id morph toxic time_stamp game toxic_morph)
   (insert db "INSERT INTO eaten VALUES (NULL, ?, ?, ?, ?, ?, ?)"

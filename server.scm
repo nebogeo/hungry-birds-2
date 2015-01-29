@@ -48,6 +48,7 @@
 
 (open-log "log.txt")
 
+(display (table->csv db "eaten"))(newline)
 
 
 (define (pluto-response txt)
@@ -125,26 +126,40 @@
       (let* ((id (insert-eaten db player_id morph toxic time_stamp game toxic_morph)))
         (pluto-response (scheme->json '())))))
 
-
    (register
     (req 'score '(player_id score))
     (lambda (req player-id score)
       (set-player-score db player-id score)
       (pluto-response
-         (scheme->json (list)))))
+       (scheme->json (list)))))
 
    (register
     (req 'hiscores '())
-    (lambda ()
+    (lambda (req)
       (pluto-response
        (scheme->json (get-hiscores db)))))
 
    (register
     (req 'player-name '(player_id player_name))
-    (lambda (player_id player_name)
+    (lambda (req player_id player_name)
       (insert-player-name db player_id player_name)
-      (pluto-response (scheme->json '()))))))
+      (pluto-response (scheme->json '()))))
 
+   (register
+    (req 'get-data '(table-id))
+    (lambda (req table-id)
+      (let ((table-id (string->number table-id)))
+      (display table-id)(newline)
+      (pluto-response
+       (table->csv
+        db
+        (cond
+         ;; attempt at security...
+         ((eq? table-id 0) "eaten")
+         ((eq? table-id 1) "player")
+         ((eq? table-id 2) "player_name")
+         ((eq? table-id 3) "morph")
+         ((eq? table-id 4) "hiscores")))))))))
 
 
 (define (start request)

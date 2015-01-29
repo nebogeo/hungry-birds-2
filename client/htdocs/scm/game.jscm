@@ -19,7 +19,6 @@
 (load "scm/butterfly/chromosome.jscm")
 (load "scm/butterfly/gui.jscm")
 (load "scm/butterfly/butterfly.jscm")
-(load "scm/server.jscm")
 (load "scm/butterfly/morph.jscm")
 
 (define the-model
@@ -50,6 +49,7 @@
 (define player-age 0)
 (define player-id 0)
 (define player-game 0)
+(define player-name "???")
 
 (define default-button-x (- (/ screen-width 2) 0))
 (define default-button-y (+ (/ screen-height 2) 20))
@@ -126,15 +126,14 @@
   (let ((edible (detect-hits
                  (list-ref butterfly-list 0) c
                  (lambda (b pos)
-                   (server-call-ret
+                   (server-call
                     "eaten"
                     (list (list "player_id" player-id)
                           (list "morph" (car (butterfly-expr b)))
                           (list "toxic" 0)
                           (list "time_stamp" (Date.now))
                           (list "game" player-game)
-                          (list "toxic_morph" (car toxic-expr)))
-                    (lambda (data) 0))
+                          (list "toxic_morph" (car toxic-expr))))
                    (make-gobble (vx pos) (vy pos) 0 255 0 0.05)
                    (set! health (+ health 10))
                    (set! flash 255)
@@ -149,15 +148,14 @@
             (detect-hits ;; search for toxic hits
               (list-ref butterfly-list 1) c
               (lambda (b pos)
-                (server-call-ret
+                (server-call
                  "eaten"
                  (list (list "player_id" player-id)
                        (list "morph" (car (butterfly-expr b)))
                        (list "toxic" 1)
                        (list "time_stamp" (Date.now))
                        (list "game" player-game)
-                       (list "toxic_morph" (car toxic-expr)))
-                 (lambda (data) 0))
+                       (list "toxic_morph" (car toxic-expr))))
                 (make-gobble (vx pos) (vy pos) 255 0 0 0.01)
                 (set! health (- health 15))
                 (set! toxic-flash 255)
@@ -240,7 +238,7 @@
 
   (for-each render-butterflies butterfly-list)
 
-   (with-state
+  (with-state
    (translate (vector 0 2 0))
    (scale (vector 0.75 0.75 0.75))
    (render-butterfly toxic-example))
@@ -267,6 +265,7 @@
 
 (define (nightjar-intro c)
   (set! player-game 0)
+  (set! player-name "???")
   (every-frame (render-intro))
   (build-demo-population
    (lambda (i)
@@ -278,17 +277,28 @@
    (lambda (e c) c)
    (game-modify-render
     (lambda (ctx)
-      (set! ctx.font "normal 50pt amatic")
-      (wrap-text ctx "Hungry Bird Game" 0 380)
-      (set! ctx.font "normal 30pt amatic")
+      (set! ctx.font "bold 50pt amatic")
+      (wrap-shadow-text ctx "Hungry Bird Game" 0 380)
+      (set! ctx.font "bold 30pt amatic")
       (wrap-text ctx "Catch butterflies for citizen science!" 0 430))
     (game-modify-buttons
      (list
       (image-button
-       "PLAY!" 620 550 "jumpy" (find-image "button.png")
+       "PLAY!" 470 550 "jumpy" (find-image "button.png")
        (lambda (c)
          (build-population)
          (nightjar-age-screen c)))
+
+      (image-button
+       "Hall of fame" 770 550 "jumpy" (find-image "button.png")
+       (lambda (c)
+         (server-call-mutate
+          "hiscores" ()
+          (lambda (game data)
+            (let ((hiscores (JSON.parse data)))
+              (build-population)
+              (nightjar-hiscores hiscores game #t))))
+         c))
 
       (image-button
        "Made by" 620 710 "" (find-image "foam-logo-wos.png")
@@ -301,16 +311,17 @@
 (define (nightjar-age-screen c)
   (game-modify-render
    (lambda (ctx)
-     (set! ctx.font "normal 30pt amatic")
-     (nightjar-all-text ctx "What is your age?"))
+     (set! ctx.font "bold 50pt amatic")
+     (wrap-shadow-text ctx "What is your age?" 0 100)
+     (set! ctx.font "bold 30pt amatic"))
    (game-modify-buttons
     (let ((age-but
            (lambda (title id)
              (image-button
               title
               default-button-x
-              (+ (- default-button-y 200) (* id 100))
-              #t
+              (+ (- default-button-y 350) (* id 130))
+              "jumpy"
               (find-image "button.png")
               (lambda (c)
                 (play-sound "sound/button.wav")
@@ -329,18 +340,18 @@
 (define (nightjar-played-before-screen c)
   (game-modify-render
    (lambda (ctx)
-     (set! ctx.font "normal 30pt amatic")
-     (nightjar-all-text
-      ctx
-      (+ "Have you played this game before?")))
+     (set! ctx.font "bold 50pt amatic")
+     (wrap-shadow-text
+      ctx "Have you played this game before?" 0 150)
+     (set! ctx.font "bold 30pt amatic"))
    (game-modify-buttons
     (list
 
      (image-button
       "Yes"
-      (+ default-button-x button-gap)
+      470
       default-button-y
-      #t
+      "jumpy"
       (find-image "button.png")
       (lambda (c)
         (play-sound "sound/button.wav")
@@ -356,9 +367,9 @@
 
      (image-button
       "No"
-      (- default-button-x button-gap)
+      770
       default-button-y
-      #t
+      "jumpy"
       (find-image "button.png")
       (lambda (c)
         (play-sound "sound/button.wav")
@@ -377,9 +388,9 @@
 (define (nightjar-show-toxic c)
   (game-modify-render
    (lambda (ctx)
-     (set! ctx.font "normal 40pt amatic")
-     (wrap-text ctx "You are a hungry bird!" 0 400)
-     (wrap-text ctx "Eat the butterflies to stay alive!" 0 480)
+     (set! ctx.font "bold 40pt amatic")
+     (wrap-shadow-text ctx "You are a hungry bird!" 0 400)
+     (wrap-shadow-text ctx "Eat the butterflies to stay alive!" 0 480)
      (draw-health ctx 450 30 100 100)
      (set! ctx.fillStyle "#fff")
      (set! ctx.strokeStyle "#fff")
@@ -414,6 +425,11 @@
                          chromo
                          (map (lambda (b) (butterfly-expr b))
                               (list-ref butterfly-list 0))))
+           (server-call
+            "score"
+            (list
+             (list "player_id" player-id)
+             (list "score" (- (time) start-time))))
            (nightjar-game-over c))
          c))
   (game-modify-mouse-hook
@@ -465,7 +481,7 @@
       (when (and (< health 20) (< (modulo hint-time 2) 1))
             (set! ctx.fillStyle "#f00")
             (set! ctx.font "bold 40pt amatic")
-            (wrap-text ctx "Health Is Low!" 0 400))
+            (wrap-shadow-text ctx "Health Is Low!" 0 400))
 
       (when (and (< toxic-hit-time 100))
             (set! toxic-hit-time (+ toxic-hit-time (* 600 (game-time-delta c))))
@@ -475,80 +491,25 @@
             (set! ctx.fillStyle "#fff")
             (wrap-text ctx "UGH!" 0 200 500 100)
             (set! ctx.font "bold 50pt amatic")
-            (wrap-text ctx "That butterfly tasted disgusting!" 0 700)
+            (wrap-shadow-text ctx "That butterfly tasted disgusting!" 0 700)
             (with-state
              (translate (vector 0 -0.3 2))
              (render-butterfly toxic-example)))
 
       (draw-health ctx 450 30 health 100)
 
-      ;;(set! ctx.font "bold 40pt amatic")
-      ;;(set! ctx.fillStyle "#fff")
-      ;;(ctx.fillText (string-append "Similarity:" (number-display (pop-similarity)) "%") 20 700)
-
-;      (when (> hint-time hint-dur)
-;            (when (< (modulo hint-time 2) 1)
-;                  (for-each
-;                   (lambda (b)
-;                     (let ((pos (butterfly-screen-pos b)))
-;                       (set! ctx.strokeStyle "#f00")
-;                       (set! ctx.fillStyle "#f00")
-;                       (set! ctx.lineWidth 5)
-;                       (ctx.beginPath)
-;                       (ctx.arc (vx pos) (vy pos) 50 0 (* Math.PI 2) true)
-;                       (ctx.closePath)
-;                       (ctx.stroke)
-;                       (set! ctx.font "bold 40pt amatic")
-;                       (ctx.fillText "TOXIC!!" (- (vx pos) 50) (- (vy pos) 60))
-;                       ))
-;                   (list-ref butterfly-list 1))
-;                  (for-each
-;                   (lambda (b)
-;                     (let ((pos (butterfly-screen-pos b)))
-;                       (set! ctx.strokeStyle "#0f0")
-;                       (set! ctx.fillStyle "#0f0")
-;                       (set! ctx.lineWidth 5)
-;                       (ctx.beginPath)
-;                       (ctx.arc (vx pos) (vy pos) 50 0 (* Math.PI 2) true)
-;                       (ctx.closePath)
-;                       (ctx.stroke)
-;                       (set! ctx.font "bold 40pt amatic")
-;                       (ctx.fillText "Edible" (- (vx pos) 50) (- (vy pos) 60))
-;                       ))
-;                   (list-ref butterfly-list 0)))
-;            (when (> hint-time (+ hint-dur 20)) (set! hint-time 0)))
-
-      ;(set! ctx.fillStyle "#fff")
-      ;(set! ctx.font "bold 20pt amatic")
-
-      ;      (wrap-text ctx
-      ;           (string-append "Alelle decrease: " (number-display allele-decrease))
-      ;           -440 280 1000 1000)
-
       (draw-gobble ctx)
       )
     (game-modify-buttons
      (list
-;      (image-button
-;       "" 80 280 "none" (find-image "plus.png")
-;       (lambda (c)
-;         (set! allele-decrease (+ allele-decrease 0.01))
-;         c))
-
- ;     (image-button
- ;      "" 50 280 "none" (find-image "minus.png")
- ;      (lambda (c)
- ;        (set! allele-decrease (- allele-decrease 0.01))
- ;        c))
-
       )
      c)))))
 
 (define (nightjar-game-over c)
-  (set! comp-time (time))
-  (build-comparison-population)
-  (every-frame (render-comparison))
   (let ((score (number-display (- (time) start-time))))
+    (set! comp-time (time))
+    (build-comparison-population)
+    (every-frame (render-comparison))
     (game-modify-update
      (lambda (t c) c)
      (game-modify-mouse-hook
@@ -556,13 +517,13 @@
       (game-modify-render
        (lambda (ctx)
          (set! ctx.font "normal 40pt amatic")
-         (wrap-text ctx "Game Over" 0 100)
+         (wrap-shadow-text ctx "Game Over" 0 100)
          (set! ctx.font "bold 40pt amatic")
-         (wrap-text ctx (string-append "You survived " score " seconds") 0 170)
+         (wrap-shadow-text ctx (string-append "You survived " score " seconds") 0 170)
          (set! ctx.font "normal 35pt amatic")
-         (wrap-text ctx "The toxic species all had this pattern" 0 240)
-         (wrap-text ctx "The edible species at the start" -350 340)
-         (wrap-text ctx "The edible species at the end" 350 340)
+         (wrap-shadow-text ctx "The toxic species all had this pattern" 0 240)
+         (wrap-shadow-text ctx "The edible species at the start" -350 340)
+         (wrap-shadow-text ctx "The edible species at the end" 350 340)
 
 ;;         (draw-chromosome ctx 190 640 start-chromo)
 ;;         (draw-chromosome ctx 860 640 chromo)
@@ -570,24 +531,173 @@
 
          (set! ctx.font "normal 40pt amatic"))
        (game-modify-buttons
-        (list
+        (append
+         (list
 ;;         (image-button
 ;;          "Learn more" 500 750 "jumpy" (find-image "button.png")
 ;;          (lambda (c)
 ;;            (nightjar-more-info-1 c)))
          (image-button
-          "Play again!" 420 750 "jumpy" (find-image "button.png")
+          "Play again!" 320 750 "jumpy" (find-image "button.png")
           (lambda (c)
             (build-population)
             (every-frame (render-intro))
             (set! player-game (+ player-game 1))
             (nightjar-show-toxic c)))
          (image-button
-          "New player" 820 750 "jumpy" (find-image "button.png")
+          "Exit" 920 750 "jumpy" (find-image "button.png")
           (lambda (c)
-            (nightjar-intro c)))
+            (nightjar-intro c))))
+
+         (if (eq? player-name "???")
+             (list
+              (image-button
+               "Enter your name" 620 750 "jumpy" (find-image "button.png")
+               (lambda (c)
+                 (build-population)
+                 (every-frame (render-intro))
+                 (nightjar-enter-name c))))
+             (list
+              (image-button
+               "Hall of fame" 620 750 "jumpy" (find-image "button.png")
+               (lambda (c)
+                 (build-population)
+                 (every-frame (render-intro))
+                 (server-call-mutate
+                  "hiscores" ()
+                  (lambda (game data)
+                    (let ((hiscores (JSON.parse data)))
+                      (nightjar-hiscores hiscores game #f))))
+                 c)))
+              )
+
          )
         c))))))
+
+
+(define (type-into str ch)
+  (car
+   (foldl
+    (lambda (c r)
+      (if (and (not (cadr r)) (eq? c "?"))
+          (list (string-append (car r) ch) #t)
+          (list (string-append (car r) c) (cadr r))))
+    (list "" #f)
+    (str.split ""))))
+
+(define (type-into-delete str)
+  (car (foldl
+        (lambda (c r)
+          ;;(console.log (list c r))
+          (if (and (not (cadr r)) (not (eq? c "?")))
+              (list (string-append "?" (car r)) #t)
+              (list (string-append c (car r)) (cadr r))))
+        (list "" #f)
+        (reverse (str.split "")))))
+
+(define (type-username ch c)
+  (set! player-name (type-into player-name ch))
+  c)
+
+(define (type-delete c)
+  (set! player-name (type-into-delete player-name))
+  c)
+
+(define (nightjar-enter-name c)
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (set! ctx.font "bold 30pt amatic")
+      (wrap-shadow-text ctx "Enter your name" 0 200 1000 70)
+      (set! ctx.font "bold 50pt amatic")
+      (wrap-shadow-text ctx player-name 0 280 1000 70)
+      (set! ctx.font "bold 30pt amatic"))
+
+    (game-modify-buttons
+     (append
+      (index-map
+       (lambda (i ch)
+         (let ((x (+ 100 (* (modulo i 10) 105)))
+               (y (+ 400 (* (Math.floor (/ i 10)) 130))))
+           (image-button ch x y #f (find-image "button-small.png")
+                         (lambda (c)
+                           (msg ch)
+                           (msg player-name)
+                           (type-username ch c)))))
+       (list "A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "K" "L" "M"
+             "N" "O" "P" "Q" "R" "S" "T" "U" "V" "W" "X" "Y" "Z"))
+
+      (list
+       (image-button "Delete" 850 700 #t (find-image "button.png")
+                     (lambda (c) (type-delete c)))
+
+       (image-button "Done" 1100 700 #t (find-image "button.png")
+                     (lambda (c)
+                       (server-call-ret
+                        "player-name"
+                        (list
+                         (list "player_id" player-id)
+                         (list "player_name" player-name))
+                        (lambda (data)
+                          (server-call-mutate
+                           "hiscores" ()
+                           (lambda (game data)
+                             (let ((hiscores (JSON.parse data)))
+                               (nightjar-hiscores hiscores game #f))))
+                          c)))))
+                     )
+     c))))
+
+
+
+
+(define (nightjar-hiscores table c return-to-intro)
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (set! ctx.font "bold 50pt amatic")
+      (wrap-shadow-text ctx (string-append "Hall of fame") 0 100 1000 70)
+      (set! ctx.font "bold 30pt amatic")
+
+      (index-for-each
+       (lambda (i e)
+         (when (not (eq? (cadr e) 0))
+               (set! ctx.fillStyle "#fff")
+               (let ((txt (string-append (car e) " : " (number-display (cadr e)))))
+                 (if (eq? i 0)
+                     (text-flashy-render ctx txt 550 (+ 240 (* 40 i)) (game-time c))
+                     (ctx.fillText txt 565 (+ 240 (* 40 i)))))))
+       table)
+
+      )
+    (game-modify-buttons
+
+     (if return-to-intro
+         (list
+          (image-button
+           "Back" 620 720 "jumpy" (find-image "button.png")
+           (lambda (c)
+             (if return-to-intro
+                 (nightjar-intro c)
+                 (nightjar-restart c)))))
+         (list
+          (image-button
+           "Play again!" 320 720 "jumpy" (find-image "button.png")
+           (lambda (c)
+             (build-population)
+             (every-frame (render-intro))
+             (set! player-game (+ player-game 1))
+             (nightjar-show-toxic c)))
+          (image-button
+           "Exit" 920 720 "jumpy" (find-image "button.png")
+           (lambda (c)
+             (nightjar-intro c))))
+
+         )
+     c))))
+
 
 (define (nightjar-more-info-1 c)
   (every-frame (render-more-info-1))
@@ -688,6 +798,7 @@
    "plus.png"
    "minus.png"
    "button.png"
+   "button-small.png"
    "alelle-1.png"
    "alelle-2.png"
    "alelle-3.png"
