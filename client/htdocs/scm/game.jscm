@@ -286,6 +286,7 @@
       (image-button
        "PLAY!" 470 550 "jumpy" (find-image "button.png")
        (lambda (c)
+         (play-sound "sounds/button.wav")
          (build-population)
          (nightjar-age-screen c)))
 
@@ -295,6 +296,7 @@
          (server-call-mutate
           "hiscores" ()
           (lambda (game data)
+            (play-sound "sounds/button.wav")
             (let ((hiscores (JSON.parse data)))
               (build-population)
               (nightjar-hiscores hiscores game #t))))
@@ -303,6 +305,7 @@
       (image-button
        "Made by" 620 710 "" (find-image "foam-logo-wos.png")
        (lambda (c)
+         (play-sound "sounds/button.wav")
          (set! window.location "http://fo.am/kernow")
          c)))
      c))))
@@ -324,7 +327,7 @@
               "jumpy"
               (find-image "button.png")
               (lambda (c)
-                (play-sound "sound/button.wav")
+                (play-sound "sounds/button.wav")
                 (set! player-age id)
                 (nightjar-played-before-screen c))))))
 
@@ -354,7 +357,7 @@
       "jumpy"
       (find-image "button.png")
       (lambda (c)
-        (play-sound "sound/button.wav")
+        (play-sound "sounds/button.wav")
         (build-population)
         (server-call-ret
          "player"
@@ -372,7 +375,7 @@
       "jumpy"
       (find-image "button.png")
       (lambda (c)
-        (play-sound "sound/button.wav")
+        (play-sound "sounds/button.wav")
         (build-population)
 
         (server-call-ret
@@ -403,6 +406,7 @@
      (image-button
       "GO!" 620 650 "jumpy" (find-image "button.png")
       (lambda (c)
+        (play-sound "sounds/button.wav")
         (set! health 100)
         (set! start-time (time))
         (set! hint-time 100)
@@ -540,6 +544,7 @@
          (image-button
           "Play again!" 320 750 "jumpy" (find-image "button.png")
           (lambda (c)
+            (play-sound "sounds/button.wav")
             (build-population)
             (every-frame (render-intro))
             (set! player-game (+ player-game 1))
@@ -547,6 +552,7 @@
          (image-button
           "Exit" 920 750 "jumpy" (find-image "button.png")
           (lambda (c)
+            (play-sound "sounds/button.wav")
             (nightjar-intro c))))
 
          (if (eq? player-name "???")
@@ -554,6 +560,7 @@
               (image-button
                "Enter your name" 620 750 "jumpy" (find-image "button.png")
                (lambda (c)
+                 (play-sound "sounds/button.wav")
                  (build-population)
                  (every-frame (render-intro))
                  (nightjar-enter-name c))))
@@ -561,6 +568,7 @@
               (image-button
                "Hall of fame" 620 750 "jumpy" (find-image "button.png")
                (lambda (c)
+                 (play-sound "sounds/button.wav")
                  (build-population)
                  (every-frame (render-intro))
                  (server-call-mutate
@@ -622,6 +630,7 @@
                (y (+ 400 (* (Math.floor (/ i 10)) 130))))
            (image-button ch x y #f (find-image "button-small.png")
                          (lambda (c)
+                           (play-sound "sounds/button.wav")
                            (msg ch)
                            (msg player-name)
                            (type-username ch c)))))
@@ -630,7 +639,9 @@
 
       (list
        (image-button "Delete" 850 700 #t (find-image "button.png")
-                     (lambda (c) (type-delete c)))
+                     (lambda (c)
+                       (play-sound "sounds/button.wav")
+                       (type-delete c)))
 
        (image-button "Done" 1100 700 #t (find-image "button.png")
                      (lambda (c)
@@ -640,6 +651,7 @@
                          (list "player_id" player-id)
                          (list "player_name" player-name))
                         (lambda (data)
+                          (play-sound "sounds/button.wav")
                           (server-call-mutate
                            "hiscores" ()
                            (lambda (game data)
@@ -664,11 +676,11 @@
       (index-for-each
        (lambda (i e)
          (when (not (eq? (cadr e) 0))
-               (set! ctx.fillStyle "#fff")
                (let ((txt (string-append (car e) " : " (number-display (cadr e)))))
                  (if (eq? i 0)
                      (text-flashy-render ctx txt 550 (+ 240 (* 40 i)) (game-time c))
-                     (ctx.fillText txt 565 (+ 240 (* 40 i)))))))
+                     (ctx.fillText txt 565 (+ 240 (* 40 i))))))
+         (set! ctx.fillStyle "#fff"))
        table)
 
       )
@@ -679,6 +691,7 @@
           (image-button
            "Back" 620 720 "jumpy" (find-image "button.png")
            (lambda (c)
+             (play-sound "sounds/button.wav")
              (if return-to-intro
                  (nightjar-intro c)
                  (nightjar-restart c)))))
@@ -686,6 +699,7 @@
           (image-button
            "Play again!" 320 720 "jumpy" (find-image "button.png")
            (lambda (c)
+             (play-sound "sounds/button.wav")
              (build-population)
              (every-frame (render-intro))
              (set! player-game (+ player-game 1))
@@ -693,6 +707,7 @@
           (image-button
            "Exit" 920 720 "jumpy" (find-image "button.png")
            (lambda (c)
+             (play-sound "sounds/button.wav")
              (nightjar-intro c))))
 
          )
@@ -726,10 +741,12 @@
        (image-button
         "Play again!" 740 750 "jumpy" (find-image "button.png")
         (lambda (c)
+          (play-sound "sounds/button.wav")
           (nightjar-intro c)))
        (image-button
         "Learn more" 500 750 "jumpy" (find-image "button.png")
         (lambda (c)
+          (play-sound "sounds/button.wav")
           (nightjar-more-info-2 c)))
        )
       c)))))
@@ -781,6 +798,7 @@
        (image-button
         "Play again!" 620 750 "jumpy" (find-image "button.png")
         (lambda (c)
+          (play-sound "sounds/button.wav")
           (nightjar-intro c)))
        )
       c)))))

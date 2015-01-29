@@ -48,9 +48,6 @@
 
 (open-log "log.txt")
 
-(display (table->csv db "eaten"))(newline)
-
-
 (define (pluto-response txt)
   (let ((p (response/full
    200                                  ; code
@@ -144,6 +141,12 @@
     (lambda (req player_id player_name)
       (insert-player-name db player_id player_name)
       (pluto-response (scheme->json '()))))
+
+   (register
+    (req 'nuke-data '())
+    (lambda (req)
+      (nuke db)
+      (redirect-to "admin.html")))
 
    (register
     (req 'get-data '(table-id))

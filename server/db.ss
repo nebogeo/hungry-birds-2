@@ -29,7 +29,7 @@
 (define (nuke db)
   (exec/ignore db "delete from player")
   (exec/ignore db "delete from eaten")
-  (exec/ignore db "delete from morph")
+  ;;(exec/ignore db "delete from morph")
   (exec/ignore db "delete from player_name")
   (exec/ignore db "delete from hiscores"))
 
