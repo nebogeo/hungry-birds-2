@@ -103,17 +103,17 @@
   (project-point (butterfly-pos s)))
 
 (define (update-butterfly s)
-  (let ((a (butterfly-turn s)))
-  (let ((dir (butterfly-dir s)))
-    (butterfly-advance-state
-     (butterfly-modify-pos
-      (butterfly-modify-dir
-       s
-       (vector (+ (* (vx dir) (cos a)) (* (vy dir) (- 0 (sin a))))
-               (+ (* (vx dir) (sin a)) (* (vy dir) (cos a)))
-               0))
-      (vadd (butterfly-pos s)
-            (vmul dir 0.05)))))))
+  (let ((a (* (butterfly-turn s) butterfly-speed-mult)))
+    (let ((dir (butterfly-dir s)))
+      (butterfly-advance-state
+       (butterfly-modify-pos
+        (butterfly-modify-dir
+         s
+         (vector (+ (* (vx dir) (cos a)) (* (vy dir) (- 0 (sin a))))
+                 (+ (* (vx dir) (sin a)) (* (vy dir) (cos a)))
+                 0))
+        (vadd (butterfly-pos s)
+              (vmul dir (* 0.05 butterfly-speed-mult))))))))
 
 (define (update-butterflies b)
   (map
@@ -158,7 +158,7 @@
     (rotate (vector 180 0 0))
     (translate (vector 0 0 -0.5))
     (let ((a (- 90 (* (butterfly-flap-amount s)
-                      (+ 1 (sin (* (butterfly-speed s)
+                      (+ 1 (sin (* (butterfly-speed s) butterfly-flap-mult
                                    (+ (butterfly-fuzz s) (time)))))))))
       (with-state
        (rotate (vector 0 0 a))

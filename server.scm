@@ -48,6 +48,8 @@
 
 (open-log "log.txt")
 
+(display (get-game-params db))(newline)
+
 (define (pluto-response txt)
   (let ((p (response/full
    200                                  ; code
@@ -147,6 +149,27 @@
     (lambda (req)
       (nuke db)
       (redirect-to "admin.html")))
+
+   (register
+    (req 'set-game-param '())
+    (lambda (req)
+      (set-game-param
+       db
+       (cdr (assq 'key (request-bindings req)))
+       (cdr (assq 'value (request-bindings req))))
+      (redirect-to "admin.html")))
+
+   (register
+    (req 'get-game-param '(key value))
+    (lambda (req key value)
+
+
+      (pluto-response (get-game-param db key value))))
+
+   (register
+    (req 'get-game-params '())
+    (lambda (req)
+      (pluto-response (scheme->json (get-game-params db)))))
 
    (register
     (req 'get-data '(table-id))

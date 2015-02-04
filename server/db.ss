@@ -24,6 +24,7 @@
   (exec/ignore db "CREATE TABLE morph ( id INTEGER PRIMARY KEY AUTOINCREMENT, texture_name TEXT, probability INTEGER, active INTEGER, can_be_toxic INTEGER, wing_shape INTEGER )")
   (exec/ignore db "CREATE TABLE player_name ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, player_name TEXT )")
   (exec/ignore db "create table hiscores ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, score real)")
+  (exec/ignore db "create table game_params ( id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT)")
   )
 
 (define (nuke db)
@@ -150,3 +151,21 @@
       (let ((rank (sort (get-player-averages db) <)))
         (get-position av rank))
       999))
+
+(define (set-game-param db key value)
+  ;; lots of arguments about upsert - do it the long way
+  (let ((s (select db "select * from game_params where key = ?" key) ))
+    (if (null? s)
+        (insert db "insert into game_params values (NULL, ?, ?)" key value)
+        (exec/ignore
+         db "update game_params set value = ? where key = ?" value key))))
+
+(define (get-game-param db key value)
+  (let ((s (select db "select value from game_params where key=?" key)))
+    (if (null? s)
+        (begin (set-game-param db key value) value)
+        (vector-ref (car (cdr s)) 0))))
+
+(define (get-game-params db)
+  (let ((s (select db "select key, value from game_params")))
+    (if (null? s) '() (map vector->list (cdr s)))))

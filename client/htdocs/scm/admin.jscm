@@ -59,6 +59,16 @@
     </div>
     </div>"))
 
+(define (param-form key value)
+  (string-append
+   "<div class='param-edit'>
+    <form action='game?fn=set-game-param' method='post' enctype='multipart/form-data'>
+          <input type='hidden' name='key' value='" key "'></br>
+          " key "
+          <input class='txt' type='text' name='value' value='" value "'></br>
+    </form>
+    </div>"))
+
 (define (admin)
   (server-call-ret
    "get-morphs"
@@ -74,6 +84,15 @@
                      (morph-active m)
                      (morph-can-be-toxic m)
                      (morph-wing-shape m))))
+        (JSON.parse data)))))
+  (server-call-ret
+   "get-game-params"
+   ()
+   (lambda (data)
+     (let ((c ($ ".param-list") ))
+       (for-each
+        (lambda (m)
+          (c.append (param-form (car m) (cadr m))))
         (JSON.parse data)))))
   )
 

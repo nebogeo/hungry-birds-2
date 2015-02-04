@@ -16,6 +16,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define butterfly-speed 0.05)
+
 (load "scm/butterfly/chromosome.jscm")
 (load "scm/butterfly/gui.jscm")
 (load "scm/butterfly/butterfly.jscm")
@@ -50,6 +52,25 @@
 (define player-id 0)
 (define player-game 0)
 (define player-name "???")
+(define health-dec 75)
+(define replenish-speed 100)
+(define butterfly-speed-mult 1)
+
+(server-call-ret "get-game-param" (list (list "key" "butterfly speed") (list "value" "1.0"))
+                 (lambda (data) (set! butterfly-speed-mult (parseFloat data))))
+
+(server-call-ret "get-game-param" (list (list "key" "flap rate") (list "value" "1.0"))
+                 (lambda (data) (set! butterfly-flap-mult (parseFloat data))))
+
+(server-call-ret "get-game-param" (list (list "key" "population size") (list "value" "15"))
+                 (lambda (data)(set! pop-size (parseInt data))))
+
+(server-call-ret "get-game-param" (list (list "key" "health decrease") (list "value" "75"))
+                  (lambda (data) (set! health-dec (parseInt data))))
+
+(server-call-ret "get-game-param" (list (list "key" "pop growth speed") (list "value" "100"))
+                 (lambda (data) (set! replenish-speed (parseInt data))))
+
 
 (define default-button-x (- (/ screen-width 2) 0))
 (define default-button-y (+ (/ screen-height 2) 20))
@@ -455,12 +476,12 @@
       (when (> replenish-tick 50)
             (set! replenish-tick 0)
             (set! butterfly-list (replenish-butterflies butterfly-list)))
-      (set! replenish-tick (+ (* 100 (game-time-delta c)) replenish-tick))
+      (set! replenish-tick (+ (* replenish-speed (game-time-delta c)) replenish-tick))
 
 
       (set! flash (* flash 0.9))
       (set! toxic-flash (* toxic-flash 0.9))
-      (set! health (clamp (- health (* 75 (game-time-delta c))) 0 100))
+      (set! health (clamp (- health (* health-dec (game-time-delta c))) 0 100))
       (set! hint-time (+ hint-time 0.1))
 
 
