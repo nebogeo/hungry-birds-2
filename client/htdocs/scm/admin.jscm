@@ -46,10 +46,11 @@
           <input class='txt' type='text' name='probability' value='" probability "'></br>
           Active:
           <input class='chq' type='checkbox' name='active' " (if (zero? active) "" "checked='checked'") "></br>
-          Can be toxic:
+<!--          Can be toxic:
           <input type='checkbox' name='can_be_toxic' " (if (zero? can-be-toxic) "" "checked='checked'") "></br>
           Wing shape:
           <input class='txt' type='text' name='wing_shape' value='" wing_shape "'></br>
+-->
           <input class='btn' type='submit' value='Update me' name='update'>
     </form>
     <form action='game?fn=update-morph' method='post' enctype='multipart/form-data' onsubmit='return do_confirm();'>
