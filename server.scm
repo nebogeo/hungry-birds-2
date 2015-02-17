@@ -81,8 +81,9 @@
            (cdr (assq 'id (request-bindings req)))
            (cdr (assq 'probability (request-bindings req)))
            (let ((t (assq 'active (request-bindings req)))) (if t 1 0))
-           (let ((t (assq 'can_be_toxic (request-bindings req)))) (if t 1 0))
-           (cdr (assq 'wing_shape (request-bindings req))))
+           ;(let ((t (assq 'can_be_toxic (request-bindings req)))) (if t 1 0))
+           ;(cdr (assq 'wing_shape (request-bindings req)))
+           )
           (delete-morph
            db (cdr (assq 'id (request-bindings req)))))
       (redirect-to "admin.html")))

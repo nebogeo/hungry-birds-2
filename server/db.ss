@@ -80,10 +80,10 @@
   (insert db "INSERT INTO morph VALUES (NULL, ?, ?, ?, ?, ?)"
           texture_name probability active can_be_toxic wing_shape))
 
-(define (update-morph db id probability active can_be_toxic wing_shape)
+(define (update-morph db id probability active) ;can_be_toxic wing_shape
   (exec/ignore
-   db "update morph set probability = ?, active = ?, can_be_toxic = ?, wing_shape = ? where id = ?"
-   probability active can_be_toxic wing_shape id))
+   db "update morph set probability = ?, active = ? where id = ?"
+   probability active id))
 
 (define (delete-morph db id)
   (exec/ignore db "delete from morph where id = ?" id))
