@@ -12,20 +12,20 @@
 
 ;; a gene is simply a list of alleles
 (define (gene-cumulative gene)
-  (foldl (lambda (a b) (+ a b)) 0 (map (lambda (a) (cadr a)) gene)))
+  (foldl (lambda (a b) (+ a b)) 0 (map allele-probability gene)))
 
 (define (clamp v min max)
   (cond
    ((< v min) min)
    ((> v max) max)   (else v)))
 
-;; divide by total to normalise the probability, and clamp to prevent fixing
+;; divide by total to normalise the probability
 (define (gene-normalise gene)
   (let ((total (gene-cumulative gene)))
     (map (lambda (allele)
            (allele-modify-probability
             allele
-            (clamp (/ (allele-probability allele) total) 0.05 0.95)))
+            (/ (allele-probability allele) total)))
          gene)))
 
 ;; converts a gene into a list of id strings, chosen based on their probability
@@ -40,7 +40,7 @@
                     (< v segment))
                (list segment allele)
                (list segment (cadr r)))))
-       (list 0 (car gene))
+       (list 0 #f)
        gene)))))
 
 ;; old normalised, clamped version of removal

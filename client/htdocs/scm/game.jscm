@@ -851,13 +851,14 @@
     "get-morphs" ()
     (lambda (data)
       (set! the-model
-            (list (foldl
-                   (lambda (m r)
-                     (if (morph-active m)
-                         (cons (allele (morph-texture-name m) (morph-probability m)) r)
-                         r))
-                   ()
-                   (JSON.parse data))))
+            (list (gene-normalise
+                   (foldl
+                    (lambda (m r)
+                      (if (morph-active m)
+                          (cons (allele (morph-texture-name m) (morph-probability m)) r)
+                          r))
+                    ()
+                    (JSON.parse data)))))
       (set! start-model the-model)
       (start-game canvas ctx)
       ))))
