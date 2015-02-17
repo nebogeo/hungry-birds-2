@@ -40,7 +40,7 @@
                     (< v segment))
                (list segment allele)
                (list segment (cadr r)))))
-       (list 0 #f)
+       (list 0 (car gene))
        gene)))))
 
 ;; old normalised, clamped version of removal
