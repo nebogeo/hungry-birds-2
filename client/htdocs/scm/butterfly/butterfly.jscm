@@ -82,7 +82,7 @@
      ((eq? state "idle")
       (if (> (vmag (butterfly-pos s)) safe-distance)
           ;; change pattern when off screen!
-          (let ((new-expr (chromosome-express chromo)))
+          (let ((new-expr (chromosome-express edible-chromo)))
             (butterfly-modify-state
              (if (eq? (butterfly-type s) "edible")
                  (butterfly-modify-texture

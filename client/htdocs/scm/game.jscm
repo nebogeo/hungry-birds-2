@@ -23,18 +23,13 @@
 (load "scm/butterfly/butterfly.jscm")
 (load "scm/butterfly/morph.jscm")
 
-(define the-model
-  (list
-   (list )))
-
-(define (model) the-model)
-
-(define start-chromo (model))
+(define edible-model (list (list)))
+(define toxic-model (list (list)))
 
 (define pop-size 15)
 (define butterfly-list ())
-(define chromo ())
-(define toxic-expr ())
+(define edible-chromo ())
+(define toxic-chromo ())
 (define toxic-example ())
 (define bg-tex (load-texture "bg.png"))
 (define title-tex (load-texture "title.png"))
@@ -55,6 +50,8 @@
 (define health-dec 75)
 (define replenish-speed 100)
 (define butterfly-speed-mult 1)
+(define edible-morph-count 100)
+(define toxic-morph-count 100)
 
 (server-call-ret "get-game-param" (list (list "key" "butterfly speed") (list "value" "1.0"))
                  (lambda (data) (set! butterfly-speed-mult (parseFloat data))))
@@ -71,6 +68,12 @@
 (server-call-ret "get-game-param" (list (list "key" "pop growth speed") (list "value" "100"))
                  (lambda (data) (set! replenish-speed (parseInt data))))
 
+(server-call-ret "get-game-param" (list (list "key" "edible morph count") (list "value" "100"))
+                 (lambda (data) (set! edible-morph-count (parseInt data))))
+
+(server-call-ret "get-game-param" (list (list "key" "toxic morph count") (list "value" "100"))
+                 (lambda (data) (set! toxic-morph-count (parseInt data))))
+
 
 (define default-button-x (- (/ screen-width 2) 0))
 (define default-button-y (+ (/ screen-height 2) 20))
@@ -80,18 +83,17 @@
 ;; population stuff
 
 (define (build-population)
-  (set! chromo (model))
-  (set! toxic-expr (chromosome-express-toxic toxic-model))
-  (set! toxic-example (example-butterfly toxic-expr))
+  (set! edible-chromo (list (gene-normalise (crop (shuffle (car edible-model)) edible-morph-count))))
+  (set! toxic-chromo (list (gene-normalise (crop (shuffle (car toxic-model)) toxic-morph-count))))
+
   (set! butterfly-list
         (list
-         (list (butterfly "edible" (chromosome-express chromo))
-               (butterfly "edible" (chromosome-express chromo)))
+         (list (butterfly "edible" (chromosome-express edible-chromo))
+               (butterfly "edible" (chromosome-express edible-chromo)))
          (list))))
 
 (define (build-demo-population fn)
-  (set! chromo (model))
-  (set! toxic-expr (chromosome-express-toxic toxic-model))
+  (set! edible-chromo edible-model)
   (set! butterfly-list
         (list
          (build-list 15 fn))))
@@ -103,7 +105,7 @@
                           (comp-butterfly
                            (- (* (modulo i 8) 1.9) 6.5)
                            (+ (quotient i 8) -3.5)
-                           (chromosome-express (model)))))
+                           (chromosome-express edible-model))))
          ;(build-list 25 (lambda (i)
          ;                 (comp-butterfly
          ;                  (+ (* (modulo i 5) 1.9) 2)
@@ -112,16 +114,6 @@
          )))
 
 
-(define (pop-similarity)
-  (*
-   (/
-    (foldl
-     (lambda (b r)
-       (+ r (expr-similarity (butterfly-expr b) toxic-expr)))
-     0
-     (car butterfly-list))
-    (length (car butterfly-list)))
-   100))
 
 (define (detect-hits butterfly-list c fn)
   ;; find closest index
@@ -155,34 +147,36 @@
                           (list "toxic" 0)
                           (list "time_stamp" (Date.now))
                           (list "game" player-game)
-                          (list "toxic_morph" (car toxic-expr))))
+                          (list "toxic_morph" (JSON.stringify toxic-chromo))))
                    (make-gobble (vx pos) (vy pos) 0 255 0 0.05)
                    (set! health (+ health 10))
                    (set! flash 255)
                    (set! found 1)
                    (set! edible-score (+ edible-score 1))
-                   (set! chromo (chromosome-remove-expression chromo (butterfly-expr b))))
+                   ;;(set! chromo (chromosome-remove-expression chromo (butterfly-expr b))))
                  )))
     (if (car edible) ;; edible hit detected
      (list (cadr edible) (list-ref butterfly-list 1))
      (list (list-ref butterfly-list 0)
            (cadr
             (detect-hits ;; search for toxic hits
-              (list-ref butterfly-list 1) c
-              (lambda (b pos)
-                (server-call
-                 "eaten"
-                 (list (list "player_id" player-id)
-                       (list "morph" (car (butterfly-expr b)))
-                       (list "toxic" 1)
-                       (list "time_stamp" (Date.now))
-                       (list "game" player-game)
-                       (list "toxic_morph" (car toxic-expr))))
-                (make-gobble (vx pos) (vy pos) 255 0 0 0.01)
-                (set! health (- health 15))
-                (set! toxic-flash 255)
-                (set! toxic-hit-time 0)
-                (set! toxic-score (+ toxic-score 1)))))))))
+             (list-ref butterfly-list 1) c
+             (lambda (b pos)
+               (server-call
+                "eaten"
+                (list (list "player_id" player-id)
+                      (list "morph" (car (butterfly-expr b)))
+                      (list "toxic" 1)
+                      (list "time_stamp" (Date.now))
+                      (list "game" player-game)
+                      (list "toxic_morph" (JSON.stringify toxic-chromo))))
+               (make-gobble (vx pos) (vy pos) 255 0 0 0.01)
+               (set! health (- health 15))
+               (set! toxic-flash 255)
+               (set! toxic-hit-time 0)
+               (set! toxic-score (+ toxic-score 1))
+               (set! toxic-example (example-butterfly (butterfly-expr b)))
+               )))))))
 
 (define (replenish type butterfly-list fn)
   (if (< (length butterfly-list) pop-size)
@@ -191,8 +185,8 @@
 
 (define (replenish-butterflies butterfly-list)
   (list
-   (replenish "edible" (list-ref butterfly-list 0) (lambda () (chromosome-express chromo)))
-   (replenish "toxic" (list-ref butterfly-list 1) (lambda () toxic-expr))))
+   (replenish "edible" (list-ref butterfly-list 0) (lambda () (chromosome-express edible-chromo)))
+   (replenish "toxic" (list-ref butterfly-list 1) (lambda () (chromosome-express toxic-chromo)))))
 
 
 
@@ -440,11 +434,6 @@
    (lambda (t c)
      (if (< health 1)
          (begin
-           ;; rebuild chromo from visible population
-           (set! chromo (chromo-from-pop
-                         chromo
-                         (map (lambda (b) (butterfly-expr b))
-                              (list-ref butterfly-list 0))))
            (server-call
             "score"
             (list
@@ -460,7 +449,7 @@
            (when (not (zero? found))
                  (set! butterfly-list
                        (list
-                        (replenish "edible" (list-ref butterfly-list 0) (lambda () (chromosome-express chromo)))
+                        (replenish "edible" (list-ref butterfly-list 0) (lambda () (chromosome-express edible-chromo)))
                         (list-ref butterfly-list 1)))
                  (set! found 0)))
 
@@ -492,9 +481,6 @@
                         200
                         255 127 200 (/ toxic-flash 255)))
 
-
-      ;;(draw-chromosome ctx 50 630 chromo)
-      ;;(draw-expr ctx 50 350 toxic-expr)
 
       (set! ctx.strokeStyle "#fff")
 
@@ -726,95 +712,6 @@
      c))))
 
 
-(define (nightjar-more-info-1 c)
-  (every-frame (render-more-info-1))
-  (game-modify-update
-   (lambda (t c) c)
-   (game-modify-mouse-hook
-    (lambda (e c) c)
-    (game-modify-render
-     (lambda (ctx)
-       (set! ctx.font "normal 40pt amatic")
-       (wrap-text ctx "You have made mimicry evolve by natural selection!" 0 50)
-       (set! ctx.font "normal 30pt amatic")
-       (wrap-text ctx "When eating the butterflies, you learnt to avoid toxic ones that all had this colour pattern:" 0 100)
-       (wrap-text ctx "But you also avoided edible ones that had the same pattern!" 0 250)
-       (set! ctx.font "normal 25pt amatic")
-       (wrap-text ctx "This reduced the number of edible butterflies" -350 300)
-       (wrap-text ctx "that had different patterns..." -350 340)
-       (wrap-text ctx "...and increased the number that had" 340 300)
-       (wrap-text ctx "the same pattern as the toxic one." 340 340)
-
-       (set! ctx.fillStyle "#fff")
-
-       (set! ctx.font "normal 40pt amatic"))
-     (game-modify-buttons
-      (list
-       (image-button
-        "Play again!" 740 750 "jumpy" (find-image "button.png")
-        (lambda (c)
-          (play-sound "sounds/button.wav")
-          (nightjar-intro c)))
-       (image-button
-        "Learn more" 500 750 "jumpy" (find-image "button.png")
-        (lambda (c)
-          (play-sound "sounds/button.wav")
-          (nightjar-more-info-2 c)))
-       )
-      c)))))
-
-
-(define (nightjar-more-info-2 c)
-  (every-frame (render-more-info-2))
-  (game-modify-update
-   (lambda (t c) c)
-   (game-modify-mouse-hook
-    (lambda (e c) c)
-    (game-modify-render
-     (lambda (ctx)
-       (set! ctx.font "normal 30pt amatic")
-       (wrap-text ctx "The presence or absence of each of the wing colour pattern elements is controlled genetically." 0 50)
-
-       (set! ctx.font "normal 30pt amatic")
-       (wrap-text ctx "When you eat the butterflies you remove some of these genes from the population." 0 100)
-
-       (ctx.drawImage (find-image (string-append "alelle-1.png")) 200 120)
-       (ctx.drawImage (find-image (string-append "alelle-2.png")) 400 120)
-       (ctx.drawImage (find-image (string-append "alelle-3.png")) 600 120)
-       (ctx.drawImage (find-image (string-append "alelle-4.png")) 800 120)
-       (ctx.drawImage (find-image (string-append "alelle-5.png")) 1000 120)
-
-       (set! ctx.font "normal 20pt amatic")
-       (wrap-text ctx "dennis" -390 200)
-       (wrap-text ctx "rays" -190 200)
-       (wrap-text ctx "red band" 10 200)
-       (wrap-text ctx "yellow band" 210 200)
-       (wrap-text ctx "yellow bar" 410 200)
-
-       (set! ctx.font "normal 30pt amatic")
-       (wrap-text ctx "This increases or decreases the frequency of the wing colour pattern elements in the population:" 0 250)
-
-       (draw-chromosome ctx 190 280 start-chromo)
-       (draw-chromosome ctx 860 280 chromo)
-
-       (set! ctx.fillStyle "#fff")
-       (set! ctx.font "normal 25pt amatic")
-       (wrap-text ctx "The patterns that are present in the toxic butterfly probably increased and the patterns that are absent probably decreased." 0 480)
-
-       (set! ctx.font "normal 30pt amatic")
-       (wrap-text ctx "The change in the genes controlling the colour patterns produces evolutionary change." 0 650)
-
-       (set! ctx.font "normal 40pt amatic"))
-     (game-modify-buttons
-      (list
-       (image-button
-        "Play again!" 620 750 "jumpy" (find-image "button.png")
-        (lambda (c)
-          (play-sound "sounds/button.wav")
-          (nightjar-intro c)))
-       )
-      c)))))
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -841,29 +738,30 @@
    (server-call-ret
     "get-morphs" (list (list "type" "edible"))
     (lambda (data)
-      (set! the-model
-            (list (gene-normalise
-                   (foldl
-                    (lambda (m r)
-                      (if (morph-active m)
-                          (cons (allele (morph-texture-name m) (morph-probability m)) r)
-                          r))
-                    ()
-                    (JSON.parse data)))))
-      (set! start-model the-model)
+      (set! edible-model
+            (list
+             (foldl
+              (lambda (m r)
+                (if (morph-active m)
+                    (cons (allele (morph-texture-name m) (morph-probability m)) r)
+                    r))
+              ()
+              (JSON.parse data))))
 
       (server-call-ret
        "get-morphs" (list (list "type" "toxic"))
        (lambda (data)
          (set! toxic-model
-               (list (gene-normalise
-                      (foldl
-                       (lambda (m r)
-                         (if (morph-active m)
-                             (cons (allele (morph-texture-name m) (morph-probability m)) r)
-                             r))
-                       ()
-                       (JSON.parse data)))))
+               (list
+                (foldl
+                 (lambda (m r)
+                   (if (morph-active m)
+                       (cons (allele (morph-texture-name m) (morph-probability m)) r)
+                       r))
+                 ()
+                 (JSON.parse data))))
+
+         (msg edible-model)
 
          (start-game canvas ctx)
          ))))))
