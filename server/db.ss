@@ -21,7 +21,7 @@
 (define (setup db)
   (exec/ignore db "CREATE TABLE player ( id INTEGER PRIMARY KEY AUTOINCREMENT, played_before INTEGER, age_range INTEGER)")
   (exec/ignore db "CREATE TABLE eaten ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, morph TEXT, toxic INTEGER, time_stamp INTEGER, game INTEGER, toxic_morph TEXT )")
-  (exec/ignore db "CREATE TABLE morph ( id INTEGER PRIMARY KEY AUTOINCREMENT, texture_name TEXT, probability INTEGER, active INTEGER, can_be_toxic INTEGER, wing_shape INTEGER )")
+  (exec/ignore db "CREATE TABLE morph ( id INTEGER PRIMARY KEY AUTOINCREMENT, texture_name TEXT, probability INTEGER, active INTEGER, can_be_toxic INTEGER, wing_shape INTEGER, type TEXT )")
   (exec/ignore db "CREATE TABLE player_name ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, player_name TEXT )")
   (exec/ignore db "create table hiscores ( id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, score real)")
   (exec/ignore db "create table game_params ( id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT)")
@@ -76,9 +76,9 @@
   (insert db "INSERT INTO eaten VALUES (NULL, ?, ?, ?, ?, ?, ?)"
           player_id morph toxic time_stamp game toxic_morph))
 
-(define (insert-morph db texture_name probability active can_be_toxic wing_shape)
-  (insert db "INSERT INTO morph VALUES (NULL, ?, ?, ?, ?, ?)"
-          texture_name probability active can_be_toxic wing_shape))
+(define (insert-morph db texture_name probability active can_be_toxic wing_shape type)
+  (insert db "INSERT INTO morph VALUES (NULL, ?, ?, ?, ?, ?, ?)"
+          texture_name probability active can_be_toxic wing_shape type))
 
 (define (update-morph db id probability active) ;can_be_toxic wing_shape
   (exec/ignore
@@ -88,8 +88,8 @@
 (define (delete-morph db id)
   (exec/ignore db "delete from morph where id = ?" id))
 
-(define (get-morphs db)
-  (let ((s (select db "SELECT id, texture_name, probability, active, can_be_toxic, wing_shape from morph")))
+(define (get-morphs db type)
+  (let ((s (select db "SELECT id, texture_name, probability, active, can_be_toxic, wing_shape from morph where type=?" type)))
     (if (null? s)
         '()
         (map
@@ -102,7 +102,7 @@
             (vector-ref i 4)
             (vector-ref i 5)
             ))
-         (cdr (select db "SELECT id, texture_name, probability, active, can_be_toxic, wing_shape from morph"))))))
+         (cdr s)))))
 
 ;(define (get-player-averages db)
 ;  (let ((players (cdr (select db "SELECT * from player"))))

@@ -81,7 +81,7 @@
 
 (define (build-population)
   (set! chromo (model))
-  (set! toxic-expr (chromosome-express-toxic chromo))
+  (set! toxic-expr (chromosome-express-toxic toxic-model))
   (set! toxic-example (example-butterfly toxic-expr))
   (set! butterfly-list
         (list
@@ -91,7 +91,7 @@
 
 (define (build-demo-population fn)
   (set! chromo (model))
-  (set! toxic-expr (chromosome-express-toxic chromo))
+  (set! toxic-expr (chromosome-express-toxic toxic-model))
   (set! butterfly-list
         (list
          (build-list 15 fn))))
@@ -99,16 +99,17 @@
 (define (build-comparison-population)
   (set! butterfly-list
         (list
-         (build-list 25 (lambda (i)
+         (build-list 48 (lambda (i)
                           (comp-butterfly
-                           (- (* (modulo i 5) 1.9) 10)
-                           (+ (quotient i 5) -3.5)
+                           (- (* (modulo i 8) 1.9) 6.5)
+                           (+ (quotient i 8) -3.5)
                            (chromosome-express (model)))))
-         (build-list 25 (lambda (i)
-                          (comp-butterfly
-                           (+ (* (modulo i 5) 1.9) 2)
-                           (+ (quotient i 5) -3.5)
-                           (chromosome-express chromo)))))))
+         ;(build-list 25 (lambda (i)
+         ;                 (comp-butterfly
+         ;                  (+ (* (modulo i 5) 1.9) 2)
+         ;                  (+ (quotient i 5) -3.5)
+         ;                  (chromosome-express chromo))))
+         )))
 
 
 (define (pop-similarity)
@@ -227,15 +228,9 @@
   (set! butterfly-list
         (list
          (update-comp-butterflies (list-ref butterfly-list 0) 0.01)
-         (update-comp-butterflies (list-ref butterfly-list 1)
-                                  (if (< (- (time) comp-time) 2) 0 0.01))))
+         ))
 
   (for-each render-butterflies butterfly-list)
-
-   (with-state
-   (translate (vector 0 0.7 0))
-   (scale (vector 0.75 0.75 0.75))
-   (render-butterfly toxic-example))
 
 ;  (with-state
 ;   (texture title-tex)
@@ -546,12 +541,8 @@
          (set! ctx.font "bold 40pt amatic")
          (wrap-shadow-text ctx (string-append "You survived " score " seconds") 0 170)
          (set! ctx.font "normal 35pt amatic")
-         (wrap-shadow-text ctx "The toxic species all had this pattern" 0 240)
-         (wrap-shadow-text ctx "The edible species at the start" -350 340)
-         (wrap-shadow-text ctx "The edible species at the end" 350 340)
+         (wrap-shadow-text ctx "Thankyou for playing!" 0 240)
 
-;;         (draw-chromosome ctx 190 640 start-chromo)
-;;         (draw-chromosome ctx 860 640 chromo)
          (set! ctx.fillStyle "#fff")
 
          (set! ctx.font "normal 40pt amatic"))
@@ -848,7 +839,7 @@
    ))
  (lambda ()
    (server-call-ret
-    "get-morphs" ()
+    "get-morphs" (list (list "type" "edible"))
     (lambda (data)
       (set! the-model
             (list (gene-normalise
@@ -860,5 +851,19 @@
                     ()
                     (JSON.parse data)))))
       (set! start-model the-model)
-      (start-game canvas ctx)
-      ))))
+
+      (server-call-ret
+       "get-morphs" (list (list "type" "toxic"))
+       (lambda (data)
+         (set! toxic-model
+               (list (gene-normalise
+                      (foldl
+                       (lambda (m r)
+                         (if (morph-active m)
+                             (cons (allele (morph-texture-name m) (morph-probability m)) r)
+                             r))
+                       ()
+                       (JSON.parse data)))))
+
+         (start-game canvas ctx)
+         ))))))

@@ -25,7 +25,6 @@ html, body {
     background: #ffaa22;
     margin: 1em;
     padding: 1em;
-    width: 45%;
 }
 
 .right {
@@ -33,14 +32,10 @@ html, body {
     background: #aaff22;
     padding: 1em;
     margin: 1em;
-    width: 35%;
 }
 
 button {
     background: #ffffff;
-}
-
-.morph-list {
 }
 
 .morph-edit {

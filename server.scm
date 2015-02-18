@@ -68,9 +68,9 @@
       (pluto-response (scheme->json '("hello")))))
 
    (register
-    (req 'get-morphs '())
-    (lambda (req)
-      (pluto-response (scheme->json (get-morphs db)))))
+    (req 'get-morphs '(type))
+    (lambda (req type)
+      (pluto-response (scheme->json (get-morphs db type)))))
 
    (register
     (req 'update-morph '())
@@ -99,7 +99,9 @@
                           (string-append "textures/uploads/" fn) #:exists 'replace
                           (lambda ()
                             (write-bytes content)))
-                      (insert-morph db fn 1 1 1 1)))))
+                      (insert-morph
+                       db fn 1 1 1 1
+                       (cdr (assq 'type (request-bindings req))))))))
       (redirect-to "admin.html")))
 
    (register

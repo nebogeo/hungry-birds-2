@@ -73,9 +73,24 @@
 (define (admin)
   (server-call-ret
    "get-morphs"
-   ()
+   (list (list "type" "edible"))
    (lambda (data)
-     (let ((c ($ ".morph-list") ))
+     (let ((c ($ ".morph-list-edible") ))
+       (for-each
+        (lambda (m)
+          (c.append (morph-form
+                     (morph-id m)
+                     (morph-texture-name m)
+                     (morph-probability m)
+                     (morph-active m)
+                     (morph-can-be-toxic m)
+                     (morph-wing-shape m))))
+        (JSON.parse data)))))
+  (server-call-ret
+   "get-morphs"
+   (list (list "type" "toxic"))
+   (lambda (data)
+     (let ((c ($ ".morph-list-toxic") ))
        (for-each
         (lambda (m)
           (c.append (morph-form
