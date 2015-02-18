@@ -112,7 +112,7 @@
                           (comp-butterfly
                            (- (* (modulo i 8) 1.9) 6.5)
                            (+ (quotient i 8) -3.5)
-                           (chromosome-express edible-model))))
+                           (chromosome-express edible-chromo))))
          ;(build-list 25 (lambda (i)
          ;                 (comp-butterfly
          ;                  (+ (* (modulo i 5) 1.9) 2)
