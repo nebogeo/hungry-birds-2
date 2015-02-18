@@ -156,13 +156,14 @@
       (cdr l)
       (append (list (car l)) (delete-n (cdr l) (- n 1)))))
 
-(define shuffle
-  (lambda (l)
-    (if (< (length l) 2)
-        l
-        (let ((item (random (length l))))
-          (cons (list-ref l item)
-                (shuffle (delete-n l item)))))))
+(define (shuffle l)
+  (cond ((null? l) ())
+        ((< (length l) 2)
+         (list (car l)))
+        (else
+         (let ((item (random (length l))))
+           (cons (list-ref l item)
+                 (shuffle (delete-n l item)))))))
 
 (define (crop l n)
   (cond

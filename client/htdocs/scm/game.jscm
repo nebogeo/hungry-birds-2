@@ -82,9 +82,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; population stuff
 
+(define (copy-list a)
+  (map (lambda (i) i) a))
+
 (define (build-population)
-  (set! edible-chromo (list (gene-normalise (crop (shuffle (car edible-model)) edible-morph-count))))
-  (set! toxic-chromo (list (gene-normalise (crop (shuffle (car toxic-model)) toxic-morph-count))))
+
+  ;; for some goodfersaken reason I have to 'deepcopy' the model here
+  ;; with some awful nonsense code - otherwise the normalisation overwrites
+  ;; the model???!!!! aarrrgggg
+  (set! edible-chromo (list (gene-normalise (crop (shuffle (car (JSON.parse (JSON.stringify edible-model)))) edible-morph-count))))
+  (set! toxic-chromo (list (gene-normalise (crop (shuffle (car (JSON.parse (JSON.stringify toxic-model)))) toxic-morph-count))))
 
   (set! butterfly-list
         (list
@@ -368,7 +375,6 @@
       (find-image "button.png")
       (lambda (c)
         (play-sound "sounds/button.wav")
-        (build-population)
         (server-call-ret
          "player"
          (list (list "played_before" 1)
@@ -386,7 +392,6 @@
       (find-image "button.png")
       (lambda (c)
         (play-sound "sounds/button.wav")
-        (build-population)
 
         (server-call-ret
          "player"
@@ -761,7 +766,7 @@
                  ()
                  (JSON.parse data))))
 
-         (msg edible-model)
+         (msg toxic-model)
 
          (start-game canvas ctx)
          ))))))

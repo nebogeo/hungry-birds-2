@@ -20,13 +20,16 @@
    ((> v max) max)   (else v)))
 
 ;; divide by total to normalise the probability
-(define (gene-normalise gene)
-  (let ((total (gene-cumulative gene)))
-    (map (lambda (allele)
-           (allele-modify-probability
-            allele
-            (/ (allele-probability allele) total)))
-         gene)))
+(define (gene-normalise g)
+  (let ((total (gene-cumulative g)))
+    (foldl
+     (lambda (a r)
+       (cons
+        (allele-modify-probability
+         a (/ (allele-probability a) total))
+        r))
+     ()
+     g)))
 
 ;; converts a gene into a list of id strings, chosen based on their probability
 (define (gene-express gene)
