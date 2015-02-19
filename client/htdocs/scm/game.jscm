@@ -52,6 +52,7 @@
 (define butterfly-speed-mult 1)
 (define edible-morph-count 100)
 (define toxic-morph-count 100)
+(define no-cheaters 1)
 
 (server-call-ret "get-game-param" (list (list "key" "butterfly speed") (list "value" "1.0"))
                  (lambda (data) (set! butterfly-speed-mult (parseFloat data))))
@@ -74,6 +75,9 @@
 (server-call-ret "get-game-param" (list (list "key" "toxic morph count") (list "value" "100"))
                  (lambda (data) (set! toxic-morph-count (parseInt data))))
 
+(server-call-ret "get-game-param" (list (list "key" "no cheaters") (list "value" "1"))
+                 (lambda (data) (set! no-cheaters (eq? (parseInt data) 1))))
+
 
 (define default-button-x (- (/ screen-width 2) 0))
 (define default-button-y (+ (/ screen-height 2) 20))
@@ -82,16 +86,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; population stuff
 
-(define (copy-list a)
-  (map (lambda (i) i) a))
-
 (define (build-population)
 
   ;; for some goodfersaken reason I have to 'deepcopy' the model here
   ;; with some awful nonsense code - otherwise the normalisation overwrites
   ;; the model???!!!! aarrrgggg
-  (set! edible-chromo (list (gene-normalise (crop (shuffle (car (JSON.parse (JSON.stringify edible-model)))) edible-morph-count))))
-  (set! toxic-chromo (list (gene-normalise (crop (shuffle (car (JSON.parse (JSON.stringify toxic-model)))) toxic-morph-count))))
+  (cond (no-cheaters
+         (let ((ts (pick-out-of (car (JSON.parse (JSON.stringify the-model))) toxic-morph-count)))
+           (let ((es (pick-out-of (cadr ts) edible-morph-count)))
+             (set! edible-chromo (list (gene-normalise (car es))))
+             (set! toxic-chromo (list (gene-normalise (car ts))))
+             )))
+        (else
+         (set! edible-chromo (list (gene-normalise (crop (shuffle (car (JSON.parse (JSON.stringify the-model)))) edible-morph-count))))
+         (set! toxic-chromo (list (gene-normalise (crop (shuffle (car (JSON.parse (JSON.stringify the-model)))) toxic-morph-count))))))
+
+  (msg edible-chromo)
+  (msg toxic-chromo)
 
   (set! butterfly-list
         (list
@@ -100,7 +111,7 @@
          (list))))
 
 (define (build-demo-population fn)
-  (set! edible-chromo edible-model)
+  (set! edible-chromo the-model)
   (set! butterfly-list
         (list
          (build-list 15 fn))))
@@ -743,7 +754,7 @@
    (server-call-ret
     "get-morphs" (list (list "type" "edible"))
     (lambda (data)
-      (set! edible-model
+      (set! the-model
             (list
              (foldl
               (lambda (m r)
@@ -753,20 +764,7 @@
               ()
               (JSON.parse data))))
 
-      (server-call-ret
-       "get-morphs" (list (list "type" "toxic"))
-       (lambda (data)
-         (set! toxic-model
-               (list
-                (foldl
-                 (lambda (m r)
-                   (if (morph-active m)
-                       (cons (allele (morph-texture-name m) (morph-probability m)) r)
-                       r))
-                 ()
-                 (JSON.parse data))))
+      (msg the-model)
 
-         (msg toxic-model)
-
-         (start-game canvas ctx)
-         ))))))
+      (start-game canvas ctx)
+      ))))

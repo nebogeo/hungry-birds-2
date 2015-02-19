@@ -171,6 +171,20 @@
    ((zero? n) ())
    (else (cons (car l) (crop (cdr l) (- n 1))))))
 
+;; return (picked left-over)
+(define (pick-out-of l n)
+  (define (_ p l n)
+    (cond
+      ((or (null? l) (zero? n))
+       (list p l))
+      (else
+       (let ((item (random (length l))))
+         (_
+          (cons (list-ref l item) p)
+          (delete-n l item)
+          (- n 1))))))
+  (_ () l n))
+
 (define factorial
   (lambda (n)
     (if (= n 0) 1
