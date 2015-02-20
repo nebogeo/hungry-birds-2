@@ -223,6 +223,27 @@
 (define (in-circle? x y r xx yy)
   (< (dist-2d xx yy x y) r))
 
+;; i18n
+
+(define i18n-lang 1)
+
+(define i18n-text
+  (list))
+
+(define (mtext-lookup id)
+  (define (_ l)
+    (cond
+     ((null? l) (string-append id " not translated"))
+     ((eq? (car (car l)) id)
+      (let ((translations (cadr (car l))))
+        (if (<= (length translations) i18n-lang)
+            (string-append id " not translated")
+            (let ((r (list-ref translations i18n-lang)))
+              (if (or (eq? r "") (eq? r " "))
+                  (list-ref translations 0) r)))))
+     (else (_ (cdr l)))))
+  (_ i18n-text))
+
 ;; fluff for fancy text rendering
 
 (define (button-do-jittering b t)

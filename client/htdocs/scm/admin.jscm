@@ -38,7 +38,7 @@
 (define (morph-form id texture probability active can-be-toxic wing-shape)
   (string-append
    "<div class='morph-edit'>
-   <div class='morph-left'> <img src='textures/uploads/" texture "'> </div>
+   <div class='morph-left'> Name: " texture " </br> <img src='textures/uploads/" texture "'> </div>
    <div class='morph-right'>
    <form action='game?fn=update-morph' method='post' enctype='multipart/form-data'>
           <input type='hidden' name='ID' value='" id "'></br>

@@ -18,6 +18,7 @@
 
 (define butterfly-speed 0.05)
 
+(load "scm/translations.jscm")
 (load "scm/butterfly/chromosome.jscm")
 (load "scm/butterfly/gui.jscm")
 (load "scm/butterfly/butterfly.jscm")
@@ -77,7 +78,6 @@
 
 (server-call-ret "get-game-param" (list (list "key" "no cheaters") (list "value" "1"))
                  (lambda (data) (set! no-cheaters (eq? (parseInt data) 1))))
-
 
 (define default-button-x (- (/ screen-width 2) 0))
 (define default-button-y (+ (/ screen-height 2) 20))
@@ -165,7 +165,13 @@
                           (list "toxic" 0)
                           (list "time_stamp" (Date.now))
                           (list "game" player-game)
-                          (list "toxic_morph" (JSON.stringify toxic-chromo))))
+                          (list "toxic_morph" (string-append
+                                               "['toxic', "
+                                               (JSON.stringify toxic-chromo)
+                                               "] ['edible', "
+                                               (JSON.stringify edible-chromo)
+                                               "]"
+                                               ))))
                    (make-gobble (vx pos) (vy pos) 0 255 0 0.05)
                    (set! health (+ health 10))
                    (set! flash 255)
@@ -306,20 +312,20 @@
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "bold 50pt amatic")
-      (wrap-shadow-text ctx "Hungry Bird Game" 0 380)
+      (wrap-shadow-text ctx (mtext-lookup "title") 0 380)
       (set! ctx.font "bold 30pt amatic")
-      (wrap-text ctx "Catch butterflies for citizen science!" 0 430))
+      (wrap-text ctx (mtext-lookup "splash") 0 430))
     (game-modify-buttons
      (list
       (image-button
-       "PLAY!" 470 550 "jumpy" (find-image "button.png")
+       (mtext-lookup "play-button") 470 550 "jumpy" (find-image "button.png")
        (lambda (c)
          (play-sound "sounds/button.wav")
          (build-population)
          (nightjar-age-screen c)))
 
       (image-button
-       "Hall of fame" 770 550 "jumpy" (find-image "button.png")
+       (mtext-lookup "hiscores-button") 770 550 "jumpy" (find-image "button.png")
        (lambda (c)
          (server-call-mutate
           "hiscores" ()
@@ -331,11 +337,29 @@
          c))
 
       (image-button
-       "Made by" 620 710 "" (find-image "foam-logo-wos.png")
+       (mtext-lookup "made-by-button") 620 710 "" (find-image "foam-logo-wos.png")
        (lambda (c)
          (play-sound "sounds/button.wav")
          (set! window.location "http://fo.am/kernow")
-         c)))
+         c))
+
+      (image-button
+       "Français" 70 680 "" (find-image "button-small.png")
+       (lambda (c)
+         (play-sound "sounds/button.wav")
+         (set! i18n-lang 1)
+         (nightjar-intro c)))
+
+
+      (image-button
+       "English" 70 770 "" (find-image "button-small.png")
+       (lambda (c)
+         (play-sound "sounds/button.wav")
+         (set! i18n-lang 0)
+         (nightjar-intro c)))
+
+
+      )
      c))))
 
 
@@ -343,7 +367,7 @@
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "bold 50pt amatic")
-     (wrap-shadow-text ctx "What is your age?" 0 100)
+     (wrap-shadow-text ctx (mtext-lookup "age-question") 0 100)
      (set! ctx.font "bold 30pt amatic"))
    (game-modify-buttons
     (let ((age-but
@@ -360,11 +384,11 @@
                 (nightjar-played-before-screen c))))))
 
       (list
-       (age-but "Younger than 10" 1)
-       (age-but "10 to 15" 2)
-       (age-but "16 to 35" 3)
-       (age-but "36 to 50" 4)
-       (age-but "Older than 50" 5))
+       (age-but (mtext-lookup "age-1") 1)
+       (age-but (mtext-lookup "age-2") 2)
+       (age-but (mtext-lookup "age-3") 3)
+       (age-but (mtext-lookup "age-4") 4)
+       (age-but (mtext-lookup "age-5") 5))
      )
     c)))
 
@@ -373,13 +397,13 @@
    (lambda (ctx)
      (set! ctx.font "bold 50pt amatic")
      (wrap-shadow-text
-      ctx "Have you played this game before?" 0 150)
+      ctx (mtext-lookup "played-before-question") 0 150)
      (set! ctx.font "bold 30pt amatic"))
    (game-modify-buttons
     (list
 
      (image-button
-      "Yes"
+      (mtext-lookup "played-before-1")
       470
       default-button-y
       "jumpy"
@@ -396,7 +420,7 @@
         (nightjar-show-toxic c)))
 
      (image-button
-      "No"
+      (mtext-lookup "played-before-2")
       770
       default-button-y
       "jumpy"
@@ -418,8 +442,8 @@
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "bold 40pt amatic")
-     (wrap-shadow-text ctx "You are a hungry bird!" 0 400)
-     (wrap-shadow-text ctx "Eat the butterflies to stay alive!" 0 480)
+     (wrap-shadow-text ctx (mtext-lookup "instructions-1") 0 400)
+     (wrap-shadow-text ctx (mtext-lookup "instructions-2") 0 480)
      (draw-health ctx 450 30 100 100)
      (set! ctx.fillStyle "#fff")
      (set! ctx.strokeStyle "#fff")
@@ -430,7 +454,8 @@
     (list
 
      (image-button
-      "GO!" 620 650 "jumpy" (find-image "button.png")
+      (mtext-lookup "instructions-button")
+      620 650 "jumpy" (find-image "button.png")
       (lambda (c)
         (play-sound "sounds/button.wav")
         (set! health 100)
@@ -503,7 +528,7 @@
       (when (and (< health 20) (< (modulo hint-time 2) 1))
             (set! ctx.fillStyle "#f00")
             (set! ctx.font "bold 40pt amatic")
-            (wrap-shadow-text ctx "Health Is Low!" 0 400))
+            (wrap-shadow-text ctx (mtext-lookup "low-health") 0 400))
 
       (when (and (< toxic-hit-time 100))
             (set! toxic-hit-time (+ toxic-hit-time (* 600 (game-time-delta c))))
@@ -511,9 +536,9 @@
             (set! ctx.font "bold 60pt amatic")
             (draw-toxic-bg ctx)
             (set! ctx.fillStyle "#fff")
-            (wrap-text ctx "UGH!" 0 200 500 100)
+            (wrap-text ctx (mtext-lookup "toxic-1") 0 200 500 100)
             (set! ctx.font "bold 50pt amatic")
-            (wrap-shadow-text ctx "That butterfly tasted disgusting!" 0 700)
+            (wrap-shadow-text ctx (mtext-lookup "toxic-2") 0 700)
             (with-state
              (translate (vector 0 -0.3 2))
              (render-butterfly toxic-example)))
@@ -539,11 +564,11 @@
       (game-modify-render
        (lambda (ctx)
          (set! ctx.font "normal 40pt amatic")
-         (wrap-shadow-text ctx "Game Over" 0 100)
+         (wrap-shadow-text ctx (mtext-lookup "game-over-1") 0 100)
          (set! ctx.font "bold 40pt amatic")
-         (wrap-shadow-text ctx (string-append "You survived " score " seconds") 0 170)
+         (wrap-shadow-text ctx (string-append (mtext-lookup "game-over-2") " " score " " (mtext-lookup "game-over-3")) 0 170)
          (set! ctx.font "normal 35pt amatic")
-         (wrap-shadow-text ctx "Thankyou for playing!" 0 240)
+         (wrap-shadow-text ctx (mtext-lookup "game-over-4") 0 240)
 
          (set! ctx.fillStyle "#fff")
 
@@ -556,7 +581,7 @@
 ;;          (lambda (c)
 ;;            (nightjar-more-info-1 c)))
          (image-button
-          "Play again!" 320 750 "jumpy" (find-image "button.png")
+          (mtext-lookup "game-over-play") 320 750 "jumpy" (find-image "button.png")
           (lambda (c)
             (play-sound "sounds/button.wav")
             (build-population)
@@ -564,7 +589,7 @@
             (set! player-game (+ player-game 1))
             (nightjar-show-toxic c)))
          (image-button
-          "Exit" 920 750 "jumpy" (find-image "button.png")
+          (mtext-lookup "game-over-exit") 920 750 "jumpy" (find-image "button.png")
           (lambda (c)
             (play-sound "sounds/button.wav")
             (nightjar-intro c))))
@@ -572,7 +597,7 @@
          (if (eq? player-name "???")
              (list
               (image-button
-               "Enter your name" 620 750 "jumpy" (find-image "button.png")
+               (mtext-lookup "enter-name") 620 750 "jumpy" (find-image "button.png")
                (lambda (c)
                  (play-sound "sounds/button.wav")
                  (build-population)
@@ -580,7 +605,7 @@
                  (nightjar-enter-name c))))
              (list
               (image-button
-               "Hall of fame" 620 750 "jumpy" (find-image "button.png")
+               (mtext-lookup "high-scores-button") 620 750 "jumpy" (find-image "button.png")
                (lambda (c)
                  (play-sound "sounds/button.wav")
                  (build-population)
@@ -631,7 +656,7 @@
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "bold 30pt amatic")
-      (wrap-shadow-text ctx "Enter your name" 0 200 1000 70)
+      (wrap-shadow-text ctx (mtext-lookup "enter-name") 0 200 1000 70)
       (set! ctx.font "bold 50pt amatic")
       (wrap-shadow-text ctx player-name 0 280 1000 70)
       (set! ctx.font "bold 30pt amatic"))
@@ -652,12 +677,12 @@
              "N" "O" "P" "Q" "R" "S" "T" "U" "V" "W" "X" "Y" "Z"))
 
       (list
-       (image-button "Delete" 850 700 #t (find-image "button.png")
+       (image-button (mtext-lookup "enter-name-delete") 850 700 #t (find-image "button.png")
                      (lambda (c)
                        (play-sound "sounds/button.wav")
                        (type-delete c)))
 
-       (image-button "Done" 1100 700 #t (find-image "button.png")
+       (image-button (mtext-lookup "enter-name-ok") 1100 700 #t (find-image "button.png")
                      (lambda (c)
                        (server-call-ret
                         "player-name"
@@ -684,7 +709,7 @@
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "bold 50pt amatic")
-      (wrap-shadow-text ctx (string-append "Hall of fame") 0 100 1000 70)
+      (wrap-shadow-text ctx (mtext-lookup "hiscores-button") 0 100 1000 70)
       (set! ctx.font "bold 30pt amatic")
 
       (index-for-each
@@ -703,7 +728,7 @@
      (if return-to-intro
          (list
           (image-button
-           "Back" 620 720 "jumpy" (find-image "button.png")
+           (mtext-lookup "back") 620 720 "jumpy" (find-image "button.png")
            (lambda (c)
              (play-sound "sounds/button.wav")
              (if return-to-intro
@@ -711,7 +736,7 @@
                  (nightjar-restart c)))))
          (list
           (image-button
-           "Play again!" 320 720 "jumpy" (find-image "button.png")
+           (mtext-lookup "game-over-play") 320 720 "jumpy" (find-image "button.png")
            (lambda (c)
              (play-sound "sounds/button.wav")
              (build-population)
@@ -719,7 +744,7 @@
              (set! player-game (+ player-game 1))
              (nightjar-show-toxic c)))
           (image-button
-           "Exit" 920 720 "jumpy" (find-image "button.png")
+           (mtext-lookup "game-over-exit") 920 720 "jumpy" (find-image "button.png")
            (lambda (c)
              (play-sound "sounds/button.wav")
              (nightjar-intro c))))
