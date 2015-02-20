@@ -714,11 +714,11 @@
 
       (index-for-each
        (lambda (i e)
-         (when (not (eq? (cadr e) 0))
+         (when (and (not (eq? (cadr e) 0)) (< i 12))
                (let ((txt (string-append (car e) " : " (number-display (cadr e)))))
                  (if (eq? i 0)
-                     (text-flashy-render ctx txt 550 (+ 240 (* 40 i)) (game-time c))
-                     (ctx.fillText txt 565 (+ 240 (* 40 i))))))
+                     (text-flashy-render ctx txt 550 (+ 180 (* 40 i)) (game-time c))
+                     (ctx.fillText txt 565 (+ 180 (* 40 i))))))
          (set! ctx.fillStyle "#fff"))
        table)
 
