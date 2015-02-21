@@ -27,7 +27,8 @@
 (define edible-model (list (list)))
 (define toxic-model (list (list)))
 
-(define pop-size 15)
+(define edible-pop-size 15)
+(define toxic-pop-size 15)
 (define butterfly-list ())
 (define edible-chromo ())
 (define toxic-chromo ())
@@ -61,8 +62,11 @@
 (server-call-ret "get-game-param" (list (list "key" "flap rate") (list "value" "1.0"))
                  (lambda (data) (set! butterfly-flap-mult (parseFloat data))))
 
-(server-call-ret "get-game-param" (list (list "key" "population size") (list "value" "15"))
-                 (lambda (data)(set! pop-size (parseInt data))))
+(server-call-ret "get-game-param" (list (list "key" "edible population size") (list "value" "15"))
+                 (lambda (data)(set! edible-pop-size (parseInt data))))
+
+(server-call-ret "get-game-param" (list (list "key" "toxic population size") (list "value" "15"))
+                 (lambda (data)(set! toxic-pop-size (parseInt data))))
 
 (server-call-ret "get-game-param" (list (list "key" "health decrease") (list "value" "75"))
                   (lambda (data) (set! health-dec (parseInt data))))
@@ -203,7 +207,8 @@
                )))))))
 
 (define (replenish type butterfly-list fn)
-  (if (< (length butterfly-list) pop-size)
+  (if (< (length butterfly-list) (if (eq? type "edible")
+                                     edible-pop-size toxic-pop-size))
       (cons (butterfly type (fn)) butterfly-list)
       butterfly-list))
 
